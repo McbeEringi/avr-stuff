@@ -1,9 +1,11 @@
 /*
 IR: tX02 ? PA2 : PB2
 LED: PA3
-SW : PA7
+SW_A: PA7
+SW_B: PA1
 */
-#define CODE 0x41b6fd02
+#define CODE_A 0x41b6fd02
+#define CODE_B 0x41b68e44
 
 #define IR_HZ 38000
 #define T 562
@@ -24,7 +26,7 @@ SW : PA7
 void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0 T us
 
 static void sleep(){sei();SLPCTRL.CTRLA=SLPCTRL_SMODE_PDOWN_gc|SLPCTRL_SEN_bm;sleep_cpu();cli();}
-ISR(PORTA_PORT_vect){PORTA.INTFLAGS=PORT_INT7_bm;}
+ISR(PORTA_PORT_vect){PORTA.INTFLAGS=PORT_INT7_bm|PORT_INT1_bm;}
 
 static void send(uint32_t x){
 	IR_ON;FOR(LEADER_ON)wait();IR_OFF;FOR(LEADER_OFF)wait();
@@ -49,13 +51,17 @@ void main(){
 	#else
 		PORTA.DIRSET=0b1100;// out: PA2,3
 	#endif
+	PORTA.PIN1CTRL=PORT_PULLUPEN_bm|PORT_ISC_LEVEL_gc;// BOTHEDGES|LEVEL
 	PORTA.PIN7CTRL=PORT_PULLUPEN_bm|PORT_ISC_LEVEL_gc;// BOTHEDGES|LEVEL
 
 	LED_ON;FOR(255)wait();LED_OFF;
 
 	while(1){
 		sleep();
-		LED_ON;send(CODE);LED_OFF;
-		while(~VPORTA.IN&(1<<7))FOR(18)wait();// about 10ms
+		LED_ON;
+		if(~VPORTA.IN&(1<<7))send(CODE_A);
+		if(~VPORTA.IN&(1<<1))send(CODE_B);
+		LED_OFF;
+		while(~VPORTA.IN&(1<<7|1<<1))FOR(18)wait();// about 10ms
 	}
 }
