@@ -58,10 +58,9 @@ void main(){
 
 	while(1){
 		sleep();
-		LED_ON;
 		if(~VPORTA.IN&(1<<7))send(CODE_A);
 		if(~VPORTA.IN&(1<<1))send(CODE_B);
-		LED_OFF;
+		LED_ON;wait();LED_OFF;
 		while(~VPORTA.IN&(1<<7|1<<1))FOR(18)wait();// about 10ms
 	}
 }
