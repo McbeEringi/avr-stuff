@@ -18,7 +18,7 @@ SW_B: PA1
 #include <avr/sleep.h>
 
 #define IR_TOP (F_CPU+IR_HZ/2)/IR_HZ
-#define IR_ON TCA0.SINGLE.CMP2BUF=IR_TOP/3-1// duty=1/3
+#define IR_ON TCA0.SINGLE.CMP2BUF=(IR_TOP+3/2)/3-1// duty=1/3
 #define IR_OFF TCA0.SINGLE.CMP2BUF=0
 #define LED_ON PORTA.OUTSET=1<<3
 #define LED_OFF PORTA.OUTCLR=1<<3
