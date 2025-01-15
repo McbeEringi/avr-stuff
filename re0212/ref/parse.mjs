@@ -1,7 +1,6 @@
 #!/usr/bin/bun
 const
 t=562,
-b2u=w=>w.reduce((a,x,i)=>a<<1|x,0).toString(16).padStart(Math.ceil(w.length/4),0),
 parse=w=>(
 	w=w.match(/\d+,\d+\.\d+/g).reduce((a,x,i,_)=>(
 		x=+x.split(',')[1]<1000,
@@ -18,11 +17,7 @@ parse=w=>(
 				a:[],b:[],x:1,p:0,t:+w.match(/Time interval\s*:,(\d+\.\d+)uS/)[1]
 	}),
 	w=w.a.slice(1,33).map(x=>+(2<x[1])),
-	[
-		b2u(w.slice(0,16)),
-		b2u(w.slice(16,24)),
-		b2u(w.slice(24,32))
-	]
+	[...Array(Math.ceil(w.length/8))].map((_,i)=>parseInt(w.slice(i*8,++i*8).reverse().join(''),2).toString(16).padStart(2,0))
 );
 
 console.log(
