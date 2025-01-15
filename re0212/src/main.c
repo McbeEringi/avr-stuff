@@ -37,7 +37,7 @@ ISR(PORTA_PORT_vect){PORTA.INTFLAGS=PORT_INT7_bm|PORT_INT1_bm;}
 static void send(const uint8_t *x,const uint8_t l,const uint8_t l_on,const uint8_t l_off){
 	IR_ON;FOR(l_on)wait();IR_OFF;FOR(l_off)wait();
 	FOR(l){IR_ON;wait();IR_OFF;wait();if(x[i>>3]>>(i&7)&1)FOR(2)wait();}
-	IR_ON;wait();IR_OFF;
+	IR_ON;wait();IR_OFF;LED_ON;
 }
 static void send_nec(x){set_wait(562);send(x,32,16,8);}
 static void send_aeha(x,l){set_wait(425);send(x,l,8,4);}
@@ -53,6 +53,7 @@ void main(){
 
 	// TCB0 delay
 	TCB0.CTRLA=TCB_ENABLE_bm;
+	TCB0.CCMP=1000;// init any
 
 	#ifdef USE_PB2
 		PORTA.DIRSET=0b1000;// out: PA3
@@ -64,10 +65,9 @@ void main(){
 	PORTA.PIN7CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;// BOTHEDGES|LEVEL
 
 	while(1){
-		sleep();
-		uint8_t f=0;
-		if(~VPORTA.IN&(1<<7)){f=1;send_aeha(code_c,40);}
-		if(~VPORTA.IN&(1<<1)){f=1;send_aeha(code_d,40);}
-		if(f){LED_ON;wait();LED_OFF;}
+		sleep();FOR(2)wait();
+		if(~VPORTA.IN&(1<<7))send_nec(code_a);
+		if(~VPORTA.IN&(1<<1))send_nec(code_b);//send_aeha(code_d,40);
+		wait();LED_OFF;
 	}
 }
