@@ -65,7 +65,7 @@ void main(){
 	PORTA.PIN7CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;// BOTHEDGES|LEVEL
 
 	while(1){
-		sleep();FOR(2)wait();
+		sleep();FOR(8)wait();
 		if(~VPORTA.IN&(1<<7))send_nec(code_a);
 		if(~VPORTA.IN&(1<<1))send_nec(code_b);//send_aeha(code_d,40);
 		wait();LED_OFF;
