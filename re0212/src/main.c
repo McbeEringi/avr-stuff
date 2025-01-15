@@ -28,8 +28,8 @@ const uint8_t code_d[]={0x2c,0x52,0x09,0x2f,0x26};// 消灯
 #define LED_ON PORTA.OUTSET=1<<3
 #define LED_OFF PORTA.OUTCLR=1<<3
 #define FOR(X) for(uint8_t i=0;i<X;++i)
-#define SET_WAIT(T) TCB0.CCMP=(F_CPU*T+500000)/1000000-1// TOP 749-1
-void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0 T us
+void set_wait(t){TCB0.CNT=0;TCB0.CCMP=(F_CPU*t+500000)/1000000-1;}// TCB0 TOP
+void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
 
 static void sleep(){sei();SLPCTRL.CTRLA=SLPCTRL_SMODE_PDOWN_gc|SLPCTRL_SEN_bm;sleep_cpu();cli();}
 ISR(PORTA_PORT_vect){PORTA.INTFLAGS=PORT_INT7_bm|PORT_INT1_bm;}
@@ -39,8 +39,8 @@ static void send(const uint8_t *x,const uint8_t l,const uint8_t l_on,const uint8
 	FOR(l){IR_ON;wait();IR_OFF;wait();if(x[i>>3]>>(i&7)&1)FOR(2)wait();}
 	IR_ON;wait();IR_OFF;
 }
-static void send_nec(x){SET_WAIT(562);send(x,32,16,8);}
-static void send_aeha(x,l){SET_WAIT(425);send(x,l,8,4);}
+static void send_nec(x){set_wait(562);send(x,32,16,8);}
+static void send_aeha(x,l){set_wait(425);send(x,l,8,4);}
 
 void main(){
 	// CLKCTRL CLR_PER=16M/12=1333k Hz
@@ -60,14 +60,14 @@ void main(){
 	#else
 		PORTA.DIRSET=0b1100;// out: PA2,3
 	#endif
-	PORTA.PIN1CTRL=PORT_PULLUPEN_bm|PORT_ISC_LEVEL_gc;// BOTHEDGES|LEVEL
-	PORTA.PIN7CTRL=PORT_PULLUPEN_bm|PORT_ISC_LEVEL_gc;// BOTHEDGES|LEVEL
+	PORTA.PIN1CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;// BOTHEDGES|LEVEL
+	PORTA.PIN7CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;// BOTHEDGES|LEVEL
 
 	while(1){
 		sleep();
-		if(~VPORTA.IN&(1<<7))send_aeha(code_c,40);
-		if(~VPORTA.IN&(1<<1))send_aeha(code_d,40);
-		LED_ON;wait();LED_OFF;
-		while(~VPORTA.IN&(1<<7|1<<1))FOR(18)wait();// about 10ms
+		uint8_t f=0;
+		if(~VPORTA.IN&(1<<7)){f=1;send_aeha(code_c,40);}
+		if(~VPORTA.IN&(1<<1)){f=1;send_aeha(code_d,40);}
+		if(f){LED_ON;wait();LED_OFF;}
 	}
 }
