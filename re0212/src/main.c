@@ -23,16 +23,16 @@ const uint8_t code_d[]={0x2c,0x52,0x09,0x2f,0x26};// 消灯
 
 #define IR_HZ 38000
 #define IR_TOP (F_CPU+IR_HZ/2)/IR_HZ
-#define IR_ON TCA0.SINGLE.CMP2BUF=(IR_TOP+3/2)/3-1// duty=1/3
-#define IR_OFF TCA0.SINGLE.CMP2BUF=0
-#define LED_ON PORTA.OUTSET=1<<3
-#define LED_OFF PORTA.OUTCLR=1<<3
+#define IR_ON TCA0.SINGLE.CMP0BUF=(IR_TOP+3/2)/3-1// duty=1/3
+#define IR_OFF TCA0.SINGLE.CMP0BUF=0
+#define LED_ON PORTA.OUTSET=1<<2
+#define LED_OFF PORTA.OUTCLR=1<<2
 #define FOR(X) for(uint8_t i=0;i<X;++i)
 void set_wait(t){TCB0.CNT=0;TCB0.CCMP=(F_CPU*t+500000)/1000000-1;}// TCB0 TOP
 void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
 
 static void sleep(){sei();SLPCTRL.CTRLA=SLPCTRL_SMODE_PDOWN_gc|SLPCTRL_SEN_bm;sleep_cpu();cli();}
-ISR(PORTA_PORT_vect){PORTA.INTFLAGS=PORT_INT7_bm|PORT_INT1_bm;}
+ISR(PORTA_PORT_vect){PORTA.INTFLAGS=PORT_INT6_bm|PORT_INT7_bm|PORT_INT1_bm;}
 
 static void send(const uint8_t *x,const uint8_t l,const uint8_t l_on,const uint8_t l_off){
 	IR_ON;FOR(l_on)wait();IR_OFF;FOR(l_off)wait();
@@ -48,7 +48,7 @@ void main(){
 
 	// TCA0 IR 1333kHz/35=38.095kHz
 	TCA0.SINGLE.CTRLA=TCA_SINGLE_ENABLE_bm;
-	TCA0.SINGLE.CTRLB=TCA_SINGLE_CMP2EN_bm|TCA_SINGLE_WGMODE_SINGLESLOPE_gc;
+	TCA0.SINGLE.CTRLB=TCA_SINGLE_CMP0EN_bm|TCA_SINGLE_WGMODE_SINGLESLOPE_gc;
 	TCA0.SINGLE.PER=IR_TOP-1;// TOP 35-1
 
 	// TCB0 delay
@@ -61,13 +61,16 @@ void main(){
 	#else
 		PORTA.DIRSET=0b1100;// out: PA2,3
 	#endif
-	PORTA.PIN1CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;// BOTHEDGES|LEVEL
+	PORTA.PIN6CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;// BOTHEDGES|LEVEL
 	PORTA.PIN7CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;// BOTHEDGES|LEVEL
+	PORTA.PIN1CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;// BOTHEDGES|LEVEL
 
 	while(1){
-		sleep();FOR(8)wait();
-		if(~VPORTA.IN&(1<<7))send_nec(code_a);
-		if(~VPORTA.IN&(1<<1))send_nec(code_b);//send_aeha(code_d,40);
+		sleep();FOR(20)wait();
+		const uint8_t x=~VPORTA.IN;
+		if(x&(1<<6))send_nec(code_a);
+		else if(x&(1<<7))send_nec(code_a);
+		else if(x&(1<<1))send_nec(code_b);//send_aeha(code_d,40);
 		wait();LED_OFF;
 	}
 }
