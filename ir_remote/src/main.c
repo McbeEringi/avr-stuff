@@ -24,13 +24,11 @@ const uint8_t code_d[]={0x2c,0x52,0x09,0x2f,0x26};// 消灯
 
 
 #ifdef REV1
-	#define TINY_XY2
 	#define IR_WO 2
 	#define LED_PORT PORTA
 	#define LED_PIN 3
 #endif
 #ifdef REV2
-	#define TINY_XY2
 	#define IR_WO 0
 	#define LED_PORT PORTA
 	#define LED_PIN 2
@@ -38,14 +36,15 @@ const uint8_t code_d[]={0x2c,0x52,0x09,0x2f,0x26};// 消灯
 
 ////////////////////////////////////////////////////////////
 
-#if defined(TINY_XY2)||defined(MEGAAVR_SERIES)
-	#define IR_PORT PORTA
-#else
+#if defined(PORTB)&&!defined(PORTF)
+	#define TCA0_IS_PORTB
 	#define IR_PORT PORTB
+#else
+	#define IR_PORT PORTA
 #endif
 
 #if IR_WO==0
-	#ifdef TINY_14_20_PIN
+	#ifdef TCA0_IS_PORTB
 		#define IR_PIN 0
 	#else
 		#define IR_PIN 3
