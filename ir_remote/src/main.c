@@ -76,13 +76,16 @@ void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
 static void sleep(){sei();SLPCTRL.CTRLA=SLPCTRL_SMODE_PDOWN_gc|SLPCTRL_SEN_bm;sleep_cpu();cli();}
 ISR(PORTA_PORT_vect){PORTA.INTFLAGS=PORT_INT6_bm|PORT_INT7_bm|PORT_INT1_bm;}
 
-static void send(const uint8_t *x,const uint8_t l,const uint8_t l_on,const uint8_t l_off){
+static void send_common(
+	const uint8_t l_on,const uint8_t l_off,
+	const uint8_t *x,const uint8_t l
+){
 	IR_ON;FOR(l_on)wait();IR_OFF;FOR(l_off)wait();
 	FOR(l){IR_ON;wait();IR_OFF;wait();if(x[i>>3]>>(i&7)&1)FOR(2)wait();}
 	IR_ON;wait();IR_OFF;LED_ON;
 }
-static void send_nec(x){set_wait(562);send(x,32,16,8);}
-static void send_aeha(x,l){set_wait(425);send(x,l,8,4);}
+static void send_nec(x){set_wait(562);send_common(16,8,x,32);}
+static void send_aeha(x,l){set_wait(425);send_common(8,4,x,l);}
 
 void main(){
 	// CLKCTRL CLR_PER=16M/12=1333k Hz
