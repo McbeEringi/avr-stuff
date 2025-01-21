@@ -7,25 +7,62 @@
 // 01111011 10110101 01111101 11110111
 // ==> 0xde     0xad     0xbe     0xef
 
-// Hotalux RE0212
-const uint8_t code_a[]={0x82,0x6d,0xbf,0x40};
-const uint8_t code_b[]={0x82,0x6d,0x71,0x22};
+// NEC Hotalux RE0212 (HLDC08301SG 付属)
+const uint8_t nec_re_x[]={0x82,0x6d,
+	// .+:ボタン名, .+!:反応あり, -:反応なし, --.+--:参考文献より引用 <https://shrkn65.nobody.jp/remocon/database.html>
+	// TODO: リモコン設定用信号(中央3秒)
+	//0xa0,0x5f// -
+	//0xa1,0x5e// -
+	//0xa2,0x5d// 点灯!
+	//0xa3,0x5c// -
+	//0xa4,0x5b// -
+	//0xa5,0x5a// -
+	//0xa6,0x59// 全灯
+	//0xa7,0x58// 白色
+	//0xa8,0x57// 暖色
+	//0xa9,0x56// -
+	//0xaa,0x55// -
+	//0xab,0x54// --ON/OFF--
+	//0xac,0x53// --アクティブ--
+	//0xad,0x52// --ナチュラル--
+	//0xae,0x51// --リラックス--
+	//0xaf,0x50// スリープタイマー 60分/30分
 
-// Panasonic HK9327K
+	//0xb0,0x4f// --明るさ10-- (中略)
+	//0xb9,0x46// --明るさ1--
+	//0xba,0x45// 明るく
+	//0xbb,0x44// 暗く
+	//0xbc,0x43// 常夜灯!
+	//0xbd,0x42// -
+	//0xbe,0x41// OFF!
+	//0xbf,0x40// 点灯 常夜灯 OFF
+	
+	//0x71,// 拡張領域?
+		//0x19// 留守番
+		//0x22// 残光(ホタルック)
+};
+
+const uint8_t nec_re_full[]={0x82,0x6d,0xa6,0x59};
+const uint8_t nec_re_on[]={0x82,0x6d,0xa2,0x5d};
+const uint8_t nec_re_dim[]={0x82,0x6d,0xbc,0x43};
+const uint8_t nec_re_lumi[]={0x82,0x6d,0x71,0x22};
+const uint8_t nec_re_off[]={0x82,0x6d,0xbe,0x41};
+
+// AEHA Panasonic HK9327K
 // https://hello-world.blog.ss-blog.jp/2011-05-07
 const uint8_t code_c[]={0x2c,0x52,0x09,0x2c,0x25};// 全灯
 const uint8_t code_d[]={0x2c,0x52,0x09,0x2f,0x26};// 消灯
 
-// SONY RM-JD019
-const uint8_t code_e[]={0x95,0};// TV PWR
+// SONY SONY RM-JD019
+const uint8_t code_e[]={0x95,0};// TV PWR 12bit
 
-// SHARP A020SD
+// AEHA SHARP A020SD
 const uint8_t code_f[]={0xaa,0x5a,0xcf,0x16,0x00,0x05,0x21,0xc1};// 点灯
 
-// IO DATA HVT-T2RC2
+// NEC IODATA HVT-T2RC2
 const uint8_t code_g[]={0xca,0x5a,0x38,0xc7};// PWR
 const uint8_t code_h[]={0xca,0x5a,0x35,0xca};// CHUP
-const uint8_t code_i[]={0xca,0x5a,0x33,0xcc};// DHDN
+const uint8_t code_i[]={0xca,0x5a,0x33,0xcc};// CHDN
 
 #define IR_WO 0
 #define LED_PORT PORTA
@@ -156,9 +193,9 @@ void main(){
 		sleep();FOR(20)wait();
 		const uint8_t x=~VPORTA.IN;
 		uint8_t f=0;
-		if(x&(1<<6))send_nec(code_a);//{send_nec(code_g);FOR(150)wait();FOR(4)FORBUF(send_sony(code_e,12))wait();}//send_aeha(code_f,64);
-		else if(x&(1<<7))send_nec(code_a);
-		else if(x&(1<<1))send_nec(code_b);
+		if(x&(1<<6))send_nec(nec_re_on);//{send_nec(code_g);FOR(150)wait();FOR(4)FORBUF(send_sony(code_e,12))wait();}//send_aeha(code_f,64);
+		else if(x&(1<<7))send_nec(nec_re_dim);
+		else if(x&(1<<1))send_nec(nec_re_off);
 		else ++f;
 		if(!f){LED_ON;wait();LED_OFF;}
 	}

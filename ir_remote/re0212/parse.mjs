@@ -17,7 +17,7 @@ parse=w=>(
 				a:[],b:[],x:1,p:0,t:+w.match(/Time interval\s*:,(\d+\.\d+)uS/)[1]
 	}),
 	w=w.a.slice(1,33).map(x=>+(2<x[1])),
-	[...Array(Math.ceil(w.length/8))].map((_,i)=>parseInt(w.slice(i*8,++i*8).reverse().join(''),2).toString(16).padStart(2,0))
+	''+[...Array(Math.ceil(w.length/8))].map((_,i)=>'0x'+parseInt(w.slice(i*8,++i*8).reverse().join(''),2).toString(16).padStart(2,0))
 );
 
 console.log(
