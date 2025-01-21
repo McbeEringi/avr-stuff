@@ -22,6 +22,11 @@ const uint8_t code_e[]={0x95,0};// TV PWR
 // SHARP A020SD
 const uint8_t code_f[]={0xaa,0x5a,0xcf,0x16,0x00,0x05,0x21,0xc1};// 点灯
 
+// IO DATA HVT-T2RC2
+const uint8_t code_g[]={0xca,0x5a,0x38,0xc7};// PWR
+const uint8_t code_h[]={0xca,0x5a,0x35,0xca};// CHUP
+const uint8_t code_i[]={0xca,0x5a,0x33,0xcc};// DHDN
+
 #define IR_WO 0
 #define LED_PORT PORTA
 #define LED_PIN 2
@@ -151,9 +156,9 @@ void main(){
 		sleep();FOR(20)wait();
 		const uint8_t x=~VPORTA.IN;
 		uint8_t f=0;
-		if(x&(1<<6))send_nec(code_a);//send_aeha(code_f,64);
-		else if(x&(1<<7))send_nec(code_a);
-		else if(x&(1<<1))send_nec(code_b);//FOR(2)FORBUF(send_sony(code_e,12))wait();
+		if(x&(1<<6)){send_nec(code_g);FOR(150)wait();FOR(4)FORBUF(send_sony(code_e,12))wait();}//send_aeha(code_f,64);
+		else if(x&(1<<7))send_nec(code_h);//send_nec(code_a);
+		else if(x&(1<<1))send_nec(code_i);
 		else ++f;
 		if(!f){LED_ON;wait();LED_OFF;}
 	}
