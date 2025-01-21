@@ -156,9 +156,9 @@ void main(){
 		sleep();FOR(20)wait();
 		const uint8_t x=~VPORTA.IN;
 		uint8_t f=0;
-		if(x&(1<<6)){send_nec(code_g);FOR(150)wait();FOR(4)FORBUF(send_sony(code_e,12))wait();}//send_aeha(code_f,64);
-		else if(x&(1<<7))send_nec(code_h);//send_nec(code_a);
-		else if(x&(1<<1))send_nec(code_i);
+		if(x&(1<<6))send_nec(code_a);//{send_nec(code_g);FOR(150)wait();FOR(4)FORBUF(send_sony(code_e,12))wait();}//send_aeha(code_f,64);
+		else if(x&(1<<7))send_nec(code_a);
+		else if(x&(1<<1))send_nec(code_b);
 		else ++f;
 		if(!f){LED_ON;wait();LED_OFF;}
 	}
