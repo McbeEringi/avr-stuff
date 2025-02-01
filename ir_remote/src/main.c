@@ -50,8 +50,12 @@ const uint8_t nec_re_off[]={0x82,0x6d,0xbe,0x41};
 
 // AEHA Panasonic HK9327K
 // https://hello-world.blog.ss-blog.jp/2011-05-07
-const uint8_t code_c[]={0x2c,0x52,0x09,0x2c,0x25};// 全灯
-const uint8_t code_d[]={0x2c,0x52,0x09,0x2f,0x26};// 消灯
+const uint8_t pana_hk_up[]={0x2c,0x52,0x09,0x2a,0x23};// 明
+const uint8_t pana_hk_dn[]={0x2c,0x52,0x09,0x2b,0x22};// 暗
+const uint8_t pana_hk_full[]={0x2c,0x52,0x09,0x2c,0x25};// 全灯
+const uint8_t pana_hk_on[]={0x2c,0x52,0x09,0x2d,0x24};// 点灯
+const uint8_t pana_hk_dim[]={0x2c,0x52,0x09,0x2e,0x27};// 常夜灯
+const uint8_t pana_hk_off[]={0x2c,0x52,0x09,0x2f,0x26};// 消灯
 
 // SONY SONY RM-JD019
 const uint8_t code_e[]={0x95,0};// TV PWR 12bit
@@ -192,10 +196,10 @@ void main(){
 	while(1){
 		sleep();FOR(20)wait();
 		const uint8_t x=~VPORTA.IN;
-		uint8_t f=0;
-		if(x&(1<<6))send_nec(nec_re_on);//{send_nec(code_g);FOR(150)wait();FOR(4)FORBUF(send_sony(code_e,12))wait();}//send_aeha(code_f,64);
-		else if(x&(1<<7))send_nec(nec_re_dim);
-		else if(x&(1<<1))send_nec(nec_re_off);
+		uint8_t f=0;// ヒューズは書いたか?
+		if(x&(1<<6))send_aeha(pana_hk_on,40);//{send_nec(code_g);FOR(150)wait();FOR(4)FORBUF(send_sony(code_e,12))wait();}//send_aeha(code_f,64);
+		else if(x&(1<<7))send_aeha(pana_hk_dim,40);
+		else if(x&(1<<1))send_aeha(pana_hk_off,40);
 		else ++f;
 		if(!f){LED_ON;wait();LED_OFF;}
 	}
