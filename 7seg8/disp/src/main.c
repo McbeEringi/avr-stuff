@@ -1,5 +1,7 @@
 #include <avr/io.h>
 #include <avr/delay.h>
+#define BAUD_RATE(X) (4.*F_CPU/(X)+.5)
+
 
 #define SERCLK 1
 #define RCLK 2
@@ -38,11 +40,9 @@ void main(){
 	TCA0.SINGLE.CMP0BUF=0;
 
 	TCB0.CTRLA=TCB_ENABLE_bm;
-	TCB0.CCMP=200-1;// 10us = 100kHz = 20000k/200
 
 	// 9600 8N1
-	USART0.BAUD=1302;//4*F_CPU/9600;
-	USART0.CTRLC=USART_CHSIZE_8BIT_gc;
+	USART0.BAUD=BAUD_RATE(115200);// 9600 too slow !
 	USART0.CTRLB=USART_RXEN_bm|USART_TXEN_bm;
 
 	PORTA.DIRSET=_BV(SERCLK)|_BV(RCLK)|_BV(OE_)|_BV(TXD);
@@ -53,6 +53,7 @@ void main(){
 	uint16_t t=0;
 
 	while(1)for(uint8_t i=0;i<8;++i){// 500us
+		TCB0.CCMP=200-1;// 10us = 100kHz = 20000k/200
 		// >> ABCDEFGd 01234567
 		uint16_t w=(disp[i]<<8)|((1<<(7-i))^255);
 		for(uint8_t j=0;j<16;++j){// 10*3*16=480 us
@@ -62,14 +63,12 @@ void main(){
 			else{wait();PORTA.OUTSET=_BV(SERCLK);}
 			wait();
 		}
+		TCB0.CCMP=400-1;// 20us
 		PORTA.OUTCLR=_BV(RCLK);
 		PORTA.OUTSET=_BV(RCLK);
-		// if(USART0.STATUS&USART_RXCIF_bm){
-		// 	++cnt;
-		// 	while (!(USART0.STATUS & USART_DREIF_bm));
-			USART0.TXDATAL = 97; // USART0.RXDATAL;
-		// }
+		if(USART0.STATUS&USART_RXCIF_bm){++cnt;USART0.RXDATAL;}
+		if(USART0.STATUS&USART_DREIF_bm)USART0.TXDATAL=97; 
 		disp[0]=num[cnt&15]|(~(t/1000)&1);//num[cnt&15];
-		wait();wait();++t;
+		wait();++t;
 	}
 }
