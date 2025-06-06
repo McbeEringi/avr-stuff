@@ -8,6 +8,7 @@
 #define OE_ 3
 #define TXD 6
 #define RXD 7
+#define FOR(X) for(uint8_t i=0;i<X;i++)
 
 const uint8_t num[]={
 	0b11111100,0b01100000,0b11011010,0b11110010,// 0123
@@ -25,6 +26,14 @@ uint8_t disp[8]={// -HELLO!-
 	0b11111100,
 	0b01000001,
 	2
+	// 0,
+	// 0b10110110,
+	// 0b11111100,
+	// 0b11111100,
+	// 0b01110110,
+	// 0b10011110,
+	// 0b00101010,
+	// 0b01000001
 };
 
 
@@ -49,8 +58,8 @@ void main(){
 	PORTA.OUTSET=_BV(SERCLK)|_BV(RCLK);
 
 	// for(uint8_t i=0;i<8;i++)disp[i]=num[i+1]|(i&1);
-	uint8_t cnt=0;
 	uint16_t t=0;
+	uint8_t cnt=0;
 
 	while(1)for(uint8_t i=0;i<8;++i){// 500us
 		TCB0.CCMP=200-1;// 10us = 100kHz = 20000k/200
@@ -66,9 +75,18 @@ void main(){
 		TCB0.CCMP=400-1;// 20us
 		PORTA.OUTCLR=_BV(RCLK);
 		PORTA.OUTSET=_BV(RCLK);
-		if(USART0.STATUS&USART_RXCIF_bm){++cnt;USART0.RXDATAL;}
-		if(USART0.STATUS&USART_DREIF_bm)USART0.TXDATAL=97; 
-		disp[0]=num[cnt&15]|(~(t/1000)&1);//num[cnt&15];
-		wait();++t;
+		while(
+			(USART0.STATUS&USART_RXCIF_bm)&&
+			(USART0.STATUS&USART_DREIF_bm)
+		){
+			if(2000<t)cnt=0;
+			t=0;
+			uint8_t r=USART0.RXDATAL;
+			if(cnt<8)disp[cnt]=r;
+			else USART0.TXDATAL=r;
+			++cnt;
+		}
+		// disp[0]=num[cnt&15]|(~(t/1000)&1);//num[cnt&15];
+		wait();if(~t)++t;
 	}
 }
