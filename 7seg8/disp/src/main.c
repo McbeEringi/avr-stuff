@@ -38,9 +38,10 @@ volatile uint8_t disp[8]={// -HELLO!-
 };
 
 // TCB0 wait
-volatile uint8_t tcb=0;
-ISR(TCB0_INT_vect){TCB0.INTFLAGS=TCB_CAPT_bm;tcb=1;}
-static void wait(){while(!tcb);tcb=0;}
+// volatile uint8_t tcb=0;
+// ISR(TCB0_INT_vect){TCB0.INTFLAGS=TCB_CAPT_bm;tcb=1;}
+// static void wait(){while(!tcb);tcb=0;}
+static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
 
 // UART0 rw
 volatile uint8_t t=0;
@@ -67,7 +68,7 @@ void main(){
 	TCA0.SINGLE.CMP0BUF=0;
 
 	TCB0.CTRLA=TCB_ENABLE_bm;
-	TCB0.INTCTRL=TCB_CAPT_bm;
+	// TCB0.INTCTRL=TCB_CAPT_bm;
 
 	// 9600 8N1
 	USART0.BAUD=BAUD_RATE(115200);// 9600 too slow !
