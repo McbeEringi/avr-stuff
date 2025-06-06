@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <avr/delay.h>
+#include <avr/interrupt.h>
 #define BAUD_RATE(X) (4.*F_CPU/(X)+.5)
 
 
@@ -17,7 +18,7 @@ const uint8_t num[]={
 	0b10011100,0b01111010,0b10011110,0b10001110 // CdEf
 };
 
-uint8_t disp[8]={// -HELLO!-
+volatile uint8_t disp[8]={// -HELLO!-
 	2,
 	0b01101110,
 	0b10011110,
@@ -36,8 +37,25 @@ uint8_t disp[8]={// -HELLO!-
 	// 0b01000001
 };
 
+// TCB0 wait
+volatile uint8_t tcb=0;
+ISR(TCB0_INT_vect){TCB0.INTFLAGS=TCB_CAPT_bm;tcb=1;}
+static void wait(){while(!tcb);tcb=0;}
 
-static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
+// UART0 rw
+volatile uint8_t t=0;
+volatile uint8_t cnt=0;
+ISR(USART0_RXC_vect){
+	if(2<t)cnt=0;
+	t=0;
+	uint8_t r=USART0.RXDATAL;
+	if(cnt<8)disp[cnt]=r;
+	else{
+		while(!(USART0.STATUS&USART_DREIF_bm));
+		USART0.TXDATAL=r;
+	}
+	++cnt;
+}
 
 void main(){
 	_PROTECTED_WRITE(CLKCTRL.MCLKCTRLB,0);//CLKCTRL_PDIV_12X_gc|CLKCTRL_PEN_bm);
@@ -49,18 +67,19 @@ void main(){
 	TCA0.SINGLE.CMP0BUF=0;
 
 	TCB0.CTRLA=TCB_ENABLE_bm;
+	TCB0.INTCTRL=TCB_CAPT_bm;
 
 	// 9600 8N1
 	USART0.BAUD=BAUD_RATE(115200);// 9600 too slow !
 	USART0.CTRLB=USART_RXEN_bm|USART_TXEN_bm;
+	USART0.CTRLA=USART_RXCIE_bm;
 
 	PORTA.DIRSET=_BV(SERCLK)|_BV(RCLK)|_BV(OE_)|_BV(TXD);
 	PORTA.OUTSET=_BV(SERCLK)|_BV(RCLK);
 
 	// for(uint8_t i=0;i<8;i++)disp[i]=num[i+1]|(i&1);
-	uint16_t t=0;
-	uint8_t cnt=0;
 
+	sei();
 	while(1)for(uint8_t i=0;i<8;++i){// 500us
 		TCB0.CCMP=200-1;// 10us = 100kHz = 20000k/200
 		// >> ABCDEFGd 01234567
@@ -75,18 +94,6 @@ void main(){
 		TCB0.CCMP=400-1;// 20us
 		PORTA.OUTCLR=_BV(RCLK);
 		PORTA.OUTSET=_BV(RCLK);
-		while(
-			(USART0.STATUS&USART_RXCIF_bm)&&
-			(USART0.STATUS&USART_DREIF_bm)
-		){
-			if(2000<t)cnt=0;
-			t=0;
-			uint8_t r=USART0.RXDATAL;
-			if(cnt<8)disp[cnt]=r;
-			else USART0.TXDATAL=r;
-			++cnt;
-		}
-		// disp[0]=num[cnt&15]|(~(t/1000)&1);//num[cnt&15];
 		wait();if(~t)++t;
 	}
 }
