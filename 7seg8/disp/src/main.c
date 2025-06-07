@@ -2,6 +2,7 @@
 #include <avr/delay.h>
 #include <avr/interrupt.h>
 #define BAUD_RATE(X) (4.*F_CPU/(X)+.5)
+#define U_SEC(X) (F_CPU/10000/(X)-1)
 
 
 #define SERCLK 1
@@ -82,7 +83,7 @@ void main(){
 
 	sei();
 	while(1)for(uint8_t i=0;i<8;++i){// 500us
-		TCB0.CCMP=200-1;// 10us = 100kHz = 20000k/200
+		TCB0.CCMP=U_SEC(10);
 		// >> ABCDEFGd 01234567
 		uint16_t w=(disp[i]<<8)|((1<<(7-i))^255);
 		for(uint8_t j=0;j<16;++j){// 10*3*16=480 us
@@ -92,7 +93,7 @@ void main(){
 			else{wait();PORTA.OUTSET=_BV(SERCLK);}
 			wait();
 		}
-		TCB0.CCMP=400-1;// 20us
+		TCB0.CCMP=U_SEC(20);
 		PORTA.OUTCLR=_BV(RCLK);
 		PORTA.OUTSET=_BV(RCLK);
 		wait();if(~t)++t;
