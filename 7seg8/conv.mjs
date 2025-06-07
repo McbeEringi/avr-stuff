@@ -33,6 +33,8 @@ const d={
 },
 s2seg=x=>(x=d[x],x==void 0?d['?']:typeof x=='string'?s2seg(x):x);
 
-await Bun.stdout.write(
-	new Uint8Array([...(await Bun.stdin.text())].slice(0,-1).map(s2seg))
-);
+// await Bun.stdout.write(
+// 	new Uint8Array([...(await Bun.stdin.text())].slice(0,-1).map(s2seg))
+// );
+
+export{s2seg};
