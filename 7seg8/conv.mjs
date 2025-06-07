@@ -31,10 +31,7 @@ const d={
 	'[':0b10011100,'\\':0b00100110,']':0b1111000,
 	'^':0b10000000,'_':0b00010000,'\`':"'",'{':'[','|':'1','}':']','~':'-'
 },
-s2seg=x=>(x=d[x],x!=void 0?{
-	Number:_=>x,
-	String:_=>s2seg(x)
-}[x.constructor.name]():d['?']);
+s2seg=x=>(x=d[x],x==void 0?d['?']:typeof x=='string'?s2seg(x):x);
 
 await Bun.stdout.write(
 	new Uint8Array([...(await Bun.stdin.text())].slice(0,-1).map(s2seg))
