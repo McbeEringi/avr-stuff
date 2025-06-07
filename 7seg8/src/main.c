@@ -12,13 +12,6 @@
 #define RXD 7
 #define FOR(X) for(uint8_t i=0;i<X;i++)
 
-const uint8_t num[]={
-	0b11111100,0b01100000,0b11011010,0b11110010,// 0123
-	0b01100110,0b10110110,0b10111110,0b11100000,// 4567
-	0b11111110,0b11110110,0b11101110,0b00111110,// 89Ab
-	0b10011100,0b01111010,0b10011110,0b10001110 // CdEf
-};
-
 volatile uint8_t disp[8]={// -HELLO!-
 	2,
 	0b01101110,
@@ -28,14 +21,6 @@ volatile uint8_t disp[8]={// -HELLO!-
 	0b11111100,
 	0b01000001,
 	2
-	// 0,
-	// 0b10110110,
-	// 0b11111100,
-	// 0b11111100,
-	// 0b01110110,
-	// 0b10011110,
-	// 0b00101010,
-	// 0b01000001
 };
 
 static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
@@ -74,9 +59,7 @@ void main(){
 	PORTA.DIRSET=_BV(SERCLK)|_BV(RCLK)|_BV(OE_)|_BV(TXD);
 	PORTA.OUTSET=_BV(SERCLK)|_BV(RCLK);
 
-	// for(uint8_t i=0;i<8;i++)disp[i]=num[i+1]|(i&1);
-
-	sei();![1](https://icongr.am/material/numeric-1-circle.svg?color=666666 'step')
+	sei();
 	while(1)for(uint8_t i=0;i<8;++i){// 500us
 		TCB0.CCMP=U_SEC(10);
 		// >> ABCDEFGd 01234567
