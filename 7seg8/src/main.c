@@ -38,17 +38,13 @@ volatile uint8_t disp[8]={// -HELLO!-
 	// 0b01000001
 };
 
-// TCB0 wait
-// volatile uint8_t tcb=0;
-// ISR(TCB0_INT_vect){TCB0.INTFLAGS=TCB_CAPT_bm;tcb=1;}
-// static void wait(){while(!tcb);tcb=0;}
 static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
 
 // UART0 rw
 volatile uint8_t t=0;
 volatile uint8_t cnt=0;
 ISR(USART0_RXC_vect){
-	if(2<t)cnt=0;
+	if(1000/500<t)cnt=0;
 	t=0;
 	uint8_t r=USART0.RXDATAL;
 	if(cnt<8)disp[cnt]=r;
@@ -69,9 +65,8 @@ void main(){
 	TCA0.SINGLE.CMP0BUF=0;
 
 	TCB0.CTRLA=TCB_ENABLE_bm;
-	// TCB0.INTCTRL=TCB_CAPT_bm;
 
-	// 9600 8N1
+	// 11500 8N1
 	USART0.BAUD=BAUD_RATE(115200);// 9600 too slow !
 	USART0.CTRLB=USART_RXEN_bm|USART_TXEN_bm;
 	USART0.CTRLA=USART_RXCIE_bm;
@@ -81,7 +76,7 @@ void main(){
 
 	// for(uint8_t i=0;i<8;i++)disp[i]=num[i+1]|(i&1);
 
-	sei();
+	sei();![1](https://icongr.am/material/numeric-1-circle.svg?color=666666 'step')
 	while(1)for(uint8_t i=0;i<8;++i){// 500us
 		TCB0.CCMP=U_SEC(10);
 		// >> ABCDEFGd 01234567
