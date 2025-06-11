@@ -26,7 +26,14 @@
 #error "REV?"
 #endif
 
-const uint8_t hello[8]={// -HELLO!-
+const uint8_t num[]={
+	0b11111100,0b01100000,0b11011010,0b11110010,
+	0b01100110,0b10110110,0b10111110,0b11100000,
+	0b11111110,0b11110110,0b11101110,0b00111110,
+	0b10011100,0b01111010,0b10011110,0b10001110
+};
+
+const uint8_t s_hello[8]={// -HELLO!-
 	2,
 	0b01101110,
 	0b10011110,
@@ -37,6 +44,17 @@ const uint8_t hello[8]={// -HELLO!-
 	2
 };
 #define HELLO_BRI 0x1554
+
+// const uint8_t s_mode[4]={
+// 	0b01111100,0b11101110,0b00001010,0b00011111,// UART
+// 	//0,0b01100000,0b11011010,0b10011101,// I2C
+// };
+
+const uint8_t s_hash[4]={0b01101110,0b11101110,0b10110110,0b01101111};
+const uint16_t src_hash=SRC_HASH;
+#define HASH_BRI 0x5500
+
+
 const uint8_t bmap[]={252,224,148,0};// pow3 [.25,.5,.75,1].map(x=>(1-x**3)*256)
 
 volatile uint8_t disp[8]={[0 ... 7]=0xff};
@@ -103,7 +121,11 @@ void main(){
 		TCA0.SINGLE.OE_CMP=bmap[(bri>>(i*2))&0b11];
 		PORTA.OUTCLR=_BV(RCLK);
 		PORTA.OUTSET=_BV(RCLK);
-		if(ms==1000){FOR(8)disp[i]=hello[i];bri=HELLO_BRI;}
+		if(ms==1000){FOR(8)disp[i]=s_hello[i];bri=HELLO_BRI;}
+		if(ms==2000){
+			FOR(4){disp[i]=s_hash[i];disp[i+4]=num[(src_hash>>((3-i)*4))&0xf];}
+			bri=HASH_BRI;
+		}
 		wait();if(~t)++t;if(~ms)++ms;
 	}
 }
