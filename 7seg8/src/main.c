@@ -34,7 +34,8 @@ volatile uint8_t disp[8]={// -HELLO!-
 	0b01000001,
 	2
 };
-volatile uint16_t bri=0xaaaa;
+volatile uint16_t bri=0x46e4;
+const uint8_t bmap[]={255,250,220,0};
 
 static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
 
@@ -95,7 +96,7 @@ void main(){
 		TCB0.CCMP=U_SEC(520);
 		PORTA.OUTCLR=_BV(RCLK);
 		PORTA.OUTSET=_BV(RCLK);
-		TCA0.SINGLE.CMP0BUF=2<<((4-((bri>>(i*2))&0b11))*2)-1;
+		TCA0.SINGLE.CMP0BUF=bmap[(bri>>(i*2))&0b11];
 		wait();if(~t)++t;
 	}
 }
