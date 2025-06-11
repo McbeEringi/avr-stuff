@@ -1,5 +1,5 @@
 #!/usr/bin/bun
-import{s2seg}from'./s2seg.mjs';
+import{s2seg}from'./util.mjs';
 
 // await Bun.stdout.write(
 const 

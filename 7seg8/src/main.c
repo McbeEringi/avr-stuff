@@ -10,6 +10,7 @@
 #define SERCLK 1
 #define RCLK 2
 #define OE_ 3
+#define OE_CMP CMP0BUF
 #define TXD 6
 #define RXD 7
 #elif defined(REV2)
@@ -18,13 +19,14 @@
 #define SERCLK 6
 #define RCLK 7
 #define OE_ 3
+#define OE_CMP CMP0BUF
 #define TXD 1
 #define RXD 2
 #else
 #error "REV?"
 #endif
 
-volatile uint8_t disp[8]={// -HELLO!-
+const uint8_t hello[8]={// -HELLO!-
 	2,
 	0b01101110,
 	0b10011110,
@@ -34,8 +36,12 @@ volatile uint8_t disp[8]={// -HELLO!-
 	0b01000001,
 	2
 };
-volatile uint16_t bri=0x46e4;
-const uint8_t bmap[]={255,250,220,0};
+#define HELLO_BRI 0x1554
+const uint8_t bmap[]={252,224,148,0};// pow3 [.25,.5,.75,1].map(x=>(1-x**3)*256)
+
+volatile uint8_t disp[8]={[0 ... 7]=0xff};
+volatile uint16_t bri=0xe4e4;// 0b88776655'44332211
+volatile uint16_t ms=0;
 
 static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
 
@@ -44,12 +50,12 @@ volatile uint8_t t=0;
 volatile uint8_t cnt=0;
 ISR(USART0_RXC_vect){
 	if(1000/500<t)cnt=0;
-	t=0;
+	t=0;ms=-1;
 	uint8_t r=USART0.RXDATAL;
 	if(cnt<8)disp[cnt++]=r;
-	else{
-		while(!(USART0.STATUS&USART_DREIF_bm));USART0.TXDATAL=r;
-	}
+	else if(cnt==8){bri=(bri&0xff00)|r;++cnt;}
+	else if(cnt==9){bri=(bri&0x00ff)|(r<<8);++cnt;}
+	else{while(!(USART0.STATUS&USART_DREIF_bm));USART0.TXDATAL=r;}
 }
 
 void main(){
@@ -74,7 +80,7 @@ void main(){
 	PORTA.OUTSET=_BV(SERCLK)|_BV(RCLK);
 
 	sei();
-	while(1)for(uint8_t i=0;i<8;++i){// 500us
+	while(1)for(uint8_t i=0;i<8;++i){// 1000us
 		TCB0.CCMP=U_SEC(10);
 		// >> ABCDEFGd 01234567
 		uint16_t w=(disp[i]<<8)|((1<<(7-i))^255);
@@ -94,9 +100,10 @@ void main(){
 			wait();
 		}
 		TCB0.CCMP=U_SEC(520);
+		TCA0.SINGLE.OE_CMP=bmap[(bri>>(i*2))&0b11];
 		PORTA.OUTCLR=_BV(RCLK);
 		PORTA.OUTSET=_BV(RCLK);
-		TCA0.SINGLE.CMP0BUF=bmap[(bri>>(i*2))&0b11];
-		wait();if(~t)++t;
+		if(ms==1000){FOR(8)disp[i]=hello[i];bri=HELLO_BRI;}
+		wait();if(~t)++t;if(~ms)++ms;
 	}
 }
