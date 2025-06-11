@@ -34,8 +34,10 @@ volatile uint8_t disp[8]={// -HELLO!-
 	0b01000001,
 	2
 };
+volatile uint8_t bri=128;
 
 static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
+static void send(uint8_t x){while(!(USART0.STATUS&USART_DREIF_bm));USART0.TXDATAL=x;}
 
 // UART0 rw
 volatile uint8_t t=0;
@@ -44,12 +46,13 @@ ISR(USART0_RXC_vect){
 	if(1000/500<t)cnt=0;
 	t=0;
 	uint8_t r=USART0.RXDATAL;
-	if(cnt<8)disp[cnt]=r;
-	else{
-		while(!(USART0.STATUS&USART_DREIF_bm));
-		USART0.TXDATAL=r;
+	if(cnt<9){
+		if(cnt)disp[cnt-1]=r;
+		else bri=r;
+		++cnt;
 	}
-	++cnt;
+	else if(cnt==9){send(bri);send(r);}
+	else send(r);
 }
 
 void main(){
@@ -59,7 +62,6 @@ void main(){
 	TCA0.SINGLE.CTRLA=TCA_SINGLE_ENABLE_bm;
 	TCA0.SINGLE.CTRLB=TCA_SINGLE_CMP0EN_bm|TCA_SINGLE_WGMODE_SINGLESLOPE_gc;
 	TCA0.SINGLE.PER=255;
-	TCA0.SINGLE.CMP0BUF=224;
 
 	TCB0.CTRLA=TCB_ENABLE_bm;
 
@@ -97,6 +99,7 @@ void main(){
 		TCB0.CCMP=U_SEC(20);
 		PORTA.OUTCLR=_BV(RCLK);
 		PORTA.OUTSET=_BV(RCLK);
+		TCA0.SINGLE.CMP0BUF=255-bri;
 		wait();if(~t)++t;
 	}
 }
