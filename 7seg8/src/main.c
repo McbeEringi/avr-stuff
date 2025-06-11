@@ -2,7 +2,7 @@
 #include <avr/delay.h>
 #include <avr/interrupt.h>
 #define BAUD_RATE(X) (4.*F_CPU/(X)+.5)
-#define U_SEC(X) (F_CPU/10000/(X)-1)
+#define U_SEC(X) (F_CPU/1000000*(X)-1)
 #define FOR(X) for(uint8_t i=0;i<X;i++)
 
 #if defined(REV1)
@@ -34,10 +34,9 @@ volatile uint8_t disp[8]={// -HELLO!-
 	0b01000001,
 	2
 };
-volatile uint8_t bri=128;
+volatile uint16_t bri=0xaaaa;
 
 static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
-static void send(uint8_t x){while(!(USART0.STATUS&USART_DREIF_bm));USART0.TXDATAL=x;}
 
 // UART0 rw
 volatile uint8_t t=0;
@@ -46,13 +45,10 @@ ISR(USART0_RXC_vect){
 	if(1000/500<t)cnt=0;
 	t=0;
 	uint8_t r=USART0.RXDATAL;
-	if(cnt<9){
-		if(cnt)disp[cnt-1]=r;
-		else bri=r;
-		++cnt;
+	if(cnt<8)disp[cnt++]=r;
+	else{
+		while(!(USART0.STATUS&USART_DREIF_bm));USART0.TXDATAL=r;
 	}
-	else if(cnt==9){send(bri);send(r);}
-	else send(r);
 }
 
 void main(){
@@ -96,10 +92,10 @@ void main(){
 			else{wait();PORTA.OUTSET=_BV(SERCLK);}
 			wait();
 		}
-		TCB0.CCMP=U_SEC(20);
+		TCB0.CCMP=U_SEC(520);
 		PORTA.OUTCLR=_BV(RCLK);
 		PORTA.OUTSET=_BV(RCLK);
-		TCA0.SINGLE.CMP0BUF=255-bri;
+		TCA0.SINGLE.CMP0BUF=2<<((4-((bri>>(i*2))&0b11))*2)-1;
 		wait();if(~t)++t;
 	}
 }

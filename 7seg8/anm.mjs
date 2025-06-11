@@ -9,7 +9,7 @@ w=Bun.file('/dev/ttyUSB0').writer();
 
 let i=0;
 setInterval(_=>(
-	w.write(new Uint8Array(s.slice(i,64+i++))),
+	w.write(new Uint8Array(s.slice(i,128+i++))),
 	w.flush(),
 	s.length<i&&(i=0)
 ),200);
