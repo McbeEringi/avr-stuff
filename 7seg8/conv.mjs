@@ -1,10 +1,7 @@
 #!/usr/bin/bun
-import{s2seg}from'./util.mjs';
+import{c2seg,a2b}from'./util.mjs';
 
-// await Bun.stdout.write(
-const 
-	x=new Uint8Array([...(await Bun.stdin.text())].slice(0,-1).map(s2seg)),
-	w=Bun.file('/dev/ttyUSB0').writer();
+const w=Bun.file('/dev/ttyUSB0').writer();
 
-w.write(x);
+w.write(a2b([...await Bun.stdin.text()].slice(0,-1).map(x=>({seg:c2seg(x),bri:1}))));
 w.flush();

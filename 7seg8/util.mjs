@@ -1,6 +1,7 @@
 #!/usr/bin/bun
 import{$}from'bun';
 const d={
+	undefined:'\u0020',
 	'\u0020':0,'\t':0,'!':0b01000001,
 	'"':0b01000100,"'":0b01000000,
 	'(':'[',')':']',
@@ -32,8 +33,15 @@ const d={
 	'[':0b10011100,'\\':0b00100110,']':0b11110000,
 	'^':0b10000000,'_':0b00010000,'\`':"'",'{':'[','|':'1','}':']','~':'-'
 },
-s2seg=x=>(x=d[x],x==void 0?d['?']:typeof x=='string'?s2seg(x):x);
+c2seg=x=>(x=d[x],x==void 0?d['?']:typeof x=='string'?c2seg(x):x),
+a2b=w=>(
+	w=[...w,...[...Array(Math.ceil(w.length/8)*8-w.length)].map(_=>({seg:0,bri:0}))],
+	new Uint8Array([...Array(w.length/8)].flatMap((x,i)=>(
+		x=w.slice(i*8,i*8+8),
+		[...x.map(x=>x.seg),...(x=>[x&0x00ff,x>>>8])(x.reduce((a,x,i)=>a|((x.bri&3)<<(i*2)),0))]
+	)))
+);
 
 await $`stty -F /dev/ttyUSB0 115200 -onlcr -echo -echoctl`;
 
-export{d,s2seg};
+export{d,c2seg,a2b};
