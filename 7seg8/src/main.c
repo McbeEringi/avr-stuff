@@ -52,7 +52,7 @@ const uint8_t s_hello[8]={// -HELLO!-
 
 const uint8_t s_hash[4]={0b01101110,0b11101110,0b10110110,0b01101111};
 const uint16_t src_hash=SRC_HASH;
-#define HASH_BRI 0x5500
+#define HASH_BRI 0xaa55
 
 
 const uint8_t bmap[]={252,224,148,0};// pow3 [.25,.5,.75,1].map(x=>(1-x**3)*256)
