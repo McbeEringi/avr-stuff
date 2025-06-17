@@ -1,5 +1,4 @@
 #include <avr/io.h>
-#include <avr/delay.h>
 #include <avr/interrupt.h>
 #define BAUD_RATE(X) (4.*F_CPU/(X)+.5)
 #define U_SEC(X) (F_CPU/1000000*(X)-1)
@@ -99,7 +98,7 @@ void main(){
 
 	sei();
 	while(1)for(uint8_t i=0;i<8;++i){// 1000us
-		TCB0.CCMP=U_SEC(10);
+		TCB0.CCMP=U_SEC(15);
 		// >> ABCDEFGd 01234567
 		uint16_t w=(disp[i]<<8)|((1<<(7-i))^255);
 		for(uint8_t
@@ -110,12 +109,10 @@ void main(){
 #else
 #error "bit order?"
 #endif
-			){// 10*3*16=480 us
+			){// 15*2*16=480 us
 			wait();
-			PORTA.OUTCLR=_BV(SERCLK);
-			if((w>>j)&1){PORTA.OUTSET=_BV(SERCLK);wait();}
-			else{wait();PORTA.OUTSET=_BV(SERCLK);}
-			wait();
+			if((w>>j)&1){PORTA.OUTCLR=_BV(SERCLK);PORTA.OUTSET=_BV(SERCLK);wait();}
+			else{PORTA.OUTCLR=_BV(SERCLK);wait();PORTA.OUTSET=_BV(SERCLK);}
 		}
 		TCB0.CCMP=U_SEC(520);
 		TCA0.SINGLE.OE_CMP=bmap[(bri>>(i*2))&0b11];
