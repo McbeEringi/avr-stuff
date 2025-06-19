@@ -8,6 +8,7 @@
 #define RCLK 7
 #define OE_ 3
 #define OE_CMP CMP0BUF
+#define ADDR 0x12
 
 volatile uint16_t disp_r[8]={
 	0b0000000000000000,
@@ -20,7 +21,15 @@ volatile uint16_t disp_r[8]={
 	0b0000000000000000
 };
 volatile uint16_t disp_g[8]={
-	[0 ... 7]=0
+	// [0 ... 7]=0xffff
+	0b0000000000000000,
+	0b0000000000000000,
+	0b1010111010001000,
+	0b1010100010001000,
+	0b1110111010001000,
+	0b1010100010001000,
+	0b1010111011101110,
+	0b0000000000000000
 };
 
 static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
@@ -37,6 +46,30 @@ static uint16_t swap(uint8_t i){
 	((r>>0)&1)<<14|((g>>0)&1)<<15);
 }
 
+ISR(TWI0_TWIS_vect) {
+	if(TWI0.SSTATUS&TWI_APIF_bm){
+		if(TWI0.SSTATUS&TWI_AP_bm){
+			if(TWI0.SSTATUS&TWI_DIR_bm){
+				// write
+			}else{
+				// read
+			}
+			TWI0.SCTRLB=TWI_SCMD_RESPONSE_gc;
+		}else{
+			// stop
+			TWI0.SCTRLB=TWI_SCMD_COMPTRANS_gc;
+		}
+		TWI0.SSTATUS=TWI_APIF_bm;
+	}
+
+	if(TWI0.SSTATUS&TWI_DIF_bm){
+		uint8_t r=TWI0.SDATA;
+		// データ受信完了処理
+		TWI0.SCTRLB=TWI_SCMD_COMPTRANS_gc;
+		TWI0.SSTATUS=TWI_DIF_bm;
+	}
+}
+
 void main(){
 	_PROTECTED_WRITE(CLKCTRL.MCLKCTRLB,0);//CLKCTRL_PDIV_12X_gc|CLKCTRL_PEN_bm);
 
@@ -44,10 +77,13 @@ void main(){
 	TCA0.SINGLE.CTRLA=TCA_SINGLE_ENABLE_bm;
 	TCA0.SINGLE.CTRLB=TCA_SINGLE_CMP0EN_bm|TCA_SINGLE_WGMODE_SINGLESLOPE_gc;
 	TCA0.SINGLE.PER=255;
-	TCA0.SINGLE.OE_CMP=200;
+	TCA0.SINGLE.OE_CMP=0;
 
 	TCB0.CTRLA=TCB_ENABLE_bm;
 	TCB0.CCMP=U_SEC(20);
+
+	TWI0.SADDR=ADDR<<1;
+	TWI0.SCTRLA=TWI_DIEN_bm|TWI_APIEN_bm|TWI_PIEN_bm|TWI_ENABLE_bm;
 
 	PORTA.DIRSET=_BV(SERCLK)|_BV(RCLK)|_BV(OE_);
 	PORTA.OUTSET=_BV(SERCLK)|_BV(RCLK);
