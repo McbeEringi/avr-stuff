@@ -46,11 +46,13 @@ static uint16_t swap(uint8_t i){
 	((r>>0)&1)<<14|((g>>0)&1)<<15);
 }
 
+volatile cnt=0;
 ISR(TWI0_TWIS_vect) {
 	if(TWI0.SSTATUS&TWI_APIF_bm){
 		if(TWI0.SSTATUS&TWI_AP_bm){
 			if(TWI0.SSTATUS&TWI_DIR_bm){
 				// write
+				cnt=0;
 			}else{
 				// read
 			}
@@ -63,9 +65,13 @@ ISR(TWI0_TWIS_vect) {
 	}
 
 	if(TWI0.SSTATUS&TWI_DIF_bm){
-		uint8_t r=TWI0.SDATA;
-		// データ受信完了処理
-		TWI0.SCTRLB=TWI_SCMD_COMPTRANS_gc;
+		uint16_t r=TWI0.SDATA;
+		uint16_t *d=cnt&0x10?disp_g:disp_r;
+
+		d[(cnt&0xf)>>1]&=cnt&1?0x00ff:0xff00;
+		d[(cnt&0xf)>>1]|=r<<(cnt&1?8:0);
+
+		TWI0.SCTRLB=cnt++<32?TWI_SCMD_RESPONSE_gc:TWI_SCMD_COMPTRANS_gc;
 		TWI0.SSTATUS=TWI_DIF_bm;
 	}
 }
@@ -83,7 +89,7 @@ void main(){
 	TCB0.CCMP=U_SEC(20);
 
 	TWI0.SADDR=ADDR<<1;
-	TWI0.SCTRLA=TWI_DIEN_bm|TWI_APIEN_bm|TWI_PIEN_bm|TWI_ENABLE_bm;
+	TWI0.SCTRLA=TWI_DIEN_bm|TWI_APIEN_bm|TWI_ENABLE_bm;
 
 	PORTA.DIRSET=_BV(SERCLK)|_BV(RCLK)|_BV(OE_);
 	PORTA.OUTSET=_BV(SERCLK)|_BV(RCLK);
