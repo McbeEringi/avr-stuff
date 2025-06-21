@@ -10,26 +10,21 @@
 #define OE_CMP CMP0BUF
 #define ADDR 0x12
 
-volatile uint16_t disp_r[8]={
-	0b0000000000000000,
-	0b0000000000000000,
-	0b1010111010001000,
-	0b1010100010001000,
-	0b1110111010001000,
-	0b1010100010001000,
-	0b1010111011101110,
-	0b0000000000000000
-};
+volatile uint16_t disp_r[8]={[0 ... 7]=0};
 volatile uint16_t disp_g[8]={
 	// [0 ... 7]=0xffff
-	0b0000000000000000,
-	0b0000000000000000,
-	0b1010111010001000,
-	0b1010100010001000,
-	0b1110111010001000,
-	0b1010100010001000,
+	// 0b0100110011001100,
+	// 0b1010101010101010,
+	// 0b1110101010101100,
+	// 0b1010110011001010,
+	0b1010111000000000,
+	0b1010100000000000,
+	0b1010100000000000,
 	0b1010111011101110,
-	0b0000000000000000
+	0b0000000010101010,
+	0b1110101011101110,
+	0b1010010010101010,
+	0b1110101011101110,
 };
 
 static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
@@ -52,9 +47,9 @@ ISR(TWI0_TWIS_vect) {
 		if(TWI0.SSTATUS&TWI_AP_bm){
 			if(TWI0.SSTATUS&TWI_DIR_bm){
 				// write
-				cnt=0;
 			}else{
-				// read
+				// recieve
+				cnt=0;
 			}
 			TWI0.SCTRLB=TWI_SCMD_RESPONSE_gc;
 		}else{
@@ -68,8 +63,8 @@ ISR(TWI0_TWIS_vect) {
 		uint16_t r=TWI0.SDATA;
 		uint16_t *d=cnt&0x10?disp_g:disp_r;
 
-		d[(cnt&0xf)>>1]&=cnt&1?0x00ff:0xff00;
-		d[(cnt&0xf)>>1]|=r<<(cnt&1?8:0);
+		d[(cnt&0xf)>>1]&=cnt&1?0xff00:0x00ff;
+		d[(cnt&0xf)>>1]|=r<<(cnt&1?0:8);
 
 		TWI0.SCTRLB=cnt++<32?TWI_SCMD_RESPONSE_gc:TWI_SCMD_COMPTRANS_gc;
 		TWI0.SSTATUS=TWI_DIF_bm;
