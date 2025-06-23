@@ -12,7 +12,7 @@ setInterval(s=>(
 		//...`5000000000000000 YEN HOSII!!!    `,
 		//...new Date().toISOString().replace(/:/g,"'").slice(0,-1)+'        '
 	].map((x,i,a)=>({seg:c2seg(x),bri:!i||a[i-1]==' '?3:2})),
-	w.write(a2b(s.concat(s).slice(i,8*8+i++),[0x15,0x10,0x11,0x12,0x13,0x14])), 
+	w.write(a2b(s.concat(s).slice(i,8*8+i++),0x10)), 
 	w.flush(),
 	i<s.length||(i=0)
 ),200);

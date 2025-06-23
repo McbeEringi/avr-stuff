@@ -57,7 +57,7 @@ setInterval(s=>(
 		...'    ',
 	].map((x,i,a)=>({seg:c2seg(x),bri:!i||a[i-1]==' '?3:2})),
 	w.write(new Uint8Array([
-		...a2b(s.concat(s).slice(i,8*8+i++),[0x15,0x10,0x11,0x12,0x13,0x14]),
+		...a2b(s.concat(s).slice(i,8*8+i++),0x10),
 		...(i&0b11?[]:[...nt((i>>>2)&1?0x21:0x20),...knzw((i>>>2)&1?0x20:0x21)])
 	])), 
 	w.flush(),
