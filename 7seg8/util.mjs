@@ -38,7 +38,7 @@ a2b=(w,addr)=>(
 	w=[...w,...[...Array(Math.ceil(w.length/8)*8-w.length)].map(_=>({seg:0,bri:0}))],
 	new Uint8Array([...Array(w.length/8)].flatMap((x,i)=>(
 		x=w.slice(i*8,i*8+8),
-		[...(addr?[addr+i,10]:[]),...x.map(x=>x.seg),...(x=>[x&0x00ff,x>>>8])(x.reduce((a,x,i)=>a|((x.bri&3)<<(i*2)),0))]
+		[...(addr?[addr[i],10]:[]),...x.map(x=>x.seg),...(x=>[x&0x00ff,x>>>8])(x.reduce((a,x,i)=>a|((x.bri&3)<<(i*2)),0))]
 	)))
 );
 

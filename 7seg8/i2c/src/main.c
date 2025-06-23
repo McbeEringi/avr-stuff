@@ -7,7 +7,7 @@
 #define RCLK 7
 #define OE_ 3
 #define OE_CMP CMP0BUF
-#define ADDR 0x12
+#define ADDR 0x15
 
 const uint8_t num[]={
 	0b11111100,0b01100000,0b11011010,0b11110010,
