@@ -1,29 +1,13 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#define BAUD_RATE(X) (4.*F_CPU/(X)+.5)
 #define U_SEC(X) (F_CPU/1000000*(X)-1)
 #define FOR(X) for(uint8_t i=0;i<X;i++)
 
-#if defined(REV1)
-#define LSBFIRST
-#define SERCLK 1
-#define RCLK 2
-#define OE_ 3
-#define OE_CMP CMP0BUF
-#define TXD 6
-#define RXD 7
-#elif defined(REV2)
-#define MSBFIRST
-#define UART_ALT
 #define SERCLK 6
 #define RCLK 7
 #define OE_ 3
 #define OE_CMP CMP0BUF
-#define TXD 1
-#define RXD 2
-#else
-#error "REV?"
-#endif
+#define ADDR 0x12
 
 const uint8_t num[]={
 	0b11111100,0b01100000,0b11011010,0b11110010,
@@ -62,17 +46,33 @@ volatile uint16_t ms=0;
 
 static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
 
-// UART0 rw
-volatile uint8_t t=0;
-volatile uint8_t cnt=0;
-ISR(USART0_RXC_vect){
-	if(1000/500<t)cnt=0;
-	t=0;ms=-1;
-	uint8_t r=USART0.RXDATAL;
-	if(cnt<8)disp[cnt++]=r;
-	else if(cnt==8){bri=(bri&0xff00)|r;++cnt;}
-	else if(cnt==9){bri=(bri&0x00ff)|(r<<8);++cnt;}
-	else{while(!(USART0.STATUS&USART_DREIF_bm));USART0.TXDATAL=r;}
+volatile cnt=0;
+ISR(TWI0_TWIS_vect) {
+	if(TWI0.SSTATUS&TWI_APIF_bm){
+		if(TWI0.SSTATUS&TWI_AP_bm){
+			cnt=0;ms=-1;
+			// if(TWI0.SSTATUS&TWI_DIR_bm){
+			// 	// write
+			// }else{
+			// 	// recieve
+			// }
+			TWI0.SCTRLB=TWI_SCMD_RESPONSE_gc;
+		}else{
+			// stop
+			TWI0.SCTRLB=TWI_SCMD_COMPTRANS_gc;
+		}
+		TWI0.SSTATUS=TWI_APIF_bm;
+	}
+
+	if(TWI0.SSTATUS&TWI_DIF_bm){
+		uint8_t r=TWI0.SDATA;
+		if(cnt<8)disp[cnt]=r;
+		else if(cnt==8)bri=(bri&0xff00)|r;
+		else if(cnt==9)bri=(bri&0x00ff)|(r<<8);
+
+		TWI0.SCTRLB=++cnt<10?TWI_SCMD_RESPONSE_gc:TWI_SCMD_COMPTRANS_gc;
+		TWI0.SSTATUS=TWI_DIF_bm;
+	}
 }
 
 void main(){
@@ -85,15 +85,10 @@ void main(){
 
 	TCB0.CTRLA=TCB_ENABLE_bm;
 
-	// 11500 8N1
-#ifdef UART_ALT
-	PORTMUX.CTRLB=PORTMUX_USART0_ALTERNATE_gc;
-#endif
-	USART0.BAUD=BAUD_RATE(115200);// 9600 too slow !
-	USART0.CTRLB=USART_RXEN_bm|USART_TXEN_bm;
-	USART0.CTRLA=USART_RXCIE_bm;
+	TWI0.SADDR=ADDR<<1;
+	TWI0.SCTRLA=TWI_DIEN_bm|TWI_APIEN_bm|TWI_ENABLE_bm;
 
-	PORTA.DIRSET=_BV(SERCLK)|_BV(RCLK)|_BV(OE_)|_BV(TXD);
+	PORTA.DIRSET=_BV(SERCLK)|_BV(RCLK)|_BV(OE_);
 	PORTA.OUTSET=_BV(SERCLK)|_BV(RCLK);
 
 	sei();
@@ -101,15 +96,7 @@ void main(){
 		TCB0.CCMP=U_SEC(15);
 		// >> ABCDEFGd 01234567
 		uint16_t w=(disp[i]<<8)|((1<<(7-i))^255);
-		for(uint8_t
-#if defined(LSBFIRST)
-			j=0;j<16;++j
-#elif defined(MSBFIRST)
-			j=15;j<16;--j
-#else
-#error "bit order?"
-#endif
-			){// 15*2*16=480 us
+		for(uint8_t j=15;j<16;--j){// 15*2*16=480 us
 			wait();
 			if((w>>j)&1){PORTA.OUTCLR=_BV(SERCLK);PORTA.OUTSET=_BV(SERCLK);wait();}
 			else{PORTA.OUTCLR=_BV(SERCLK);wait();PORTA.OUTSET=_BV(SERCLK);}
@@ -123,6 +110,6 @@ void main(){
 			FOR(4){disp[i]=s_hash[i];disp[i+4]=num[(src_hash>>((3-i)*4))&0xf];}
 			bri=HASH_BRI;
 		}
-		wait();if(~t)++t;if(~ms)++ms;
+		wait();if(~ms)++ms;
 	}
 }

@@ -11,8 +11,8 @@ setInterval(s=>(
 		//...`        S    P    A    C    E `,
 		//...`5000000000000000 YEN HOSII!!!    `,
 		//...new Date().toISOString().replace(/:/g,"'").slice(0,-1)+'        '
-	].map((x,i,a)=>({seg:c2seg(x),bri:!i||a[i-1]==' '?2:1})),
-	w.write(a2b(s.concat(s).slice(i,10*8+i++))), 
+	].map((x,i,a)=>({seg:c2seg(x),bri:!i||a[i-1]==' '?3:2})),
+	w.write(a2b(s.concat(s).slice(i,8*8+i++),0x10)), 
 	w.flush(),
 	i<s.length||(i=0)
 ),200);

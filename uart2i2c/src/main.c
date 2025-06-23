@@ -28,17 +28,21 @@ void TWI_write(uint8_t x){
 }
 void TWI_end(){TWI0.MCTRLB=TWI_MCMD_STOP_gc;}
 
+volatile uint8_t cnt=0;
+volatile uint8_t len=0;
 ISR(USART0_RXC_vect){
 	uint8_t r=USART0.RXDATAL;
 	// while(!(USART0.STATUS&USART_DREIF_bm));USART0.TXDATAL=r;
-	if(TCB0.CNT==TCB0.CCMP)TWI_begin(r);
+	if(cnt==0)TWI_begin(r);
+	else if(cnt==1)len=r;
 	else TWI_write(r);
+	if(cnt==len+1){TWI_end();cnt=0;}else ++cnt;
 	TCB0.CNT=0;
 }
 
 ISR(TCB0_INT_vect){
 	TCB0.INTFLAGS=TCB_CAPT_bm;
-	TWI_end();
+	TWI_end();cnt=0;
 }
 
 int main(void) {
@@ -60,9 +64,7 @@ int main(void) {
 	TWI0.MSTATUS=TWI_BUSSTATE_IDLE_gc;
 
 	SET_TXD();
-	// TWI_begin(0x12);
-	// TWI_write(0xff);
-	// TWI_end();
+
 	sei();
 	while(1)sleep_cpu();
 }

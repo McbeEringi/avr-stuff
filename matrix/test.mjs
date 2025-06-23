@@ -1,6 +1,7 @@
 #!/usr/bin/bun
 import{$}from'bun';
 const
+addr=0x20,
 w=Bun.file('/dev/ttyUSB0').writer();
 
 await $`stty -F /dev/ttyUSB0 115200 -onlcr -echo -echoctl`;
@@ -9,7 +10,7 @@ let a=0;
 setInterval(_=>(
 w.write(new Uint8Array(
 	(a=!a)?[
-		0x12,
+		addr,32,
 		0b00000000,0b00000000,
 		0b00000000,0b00000000,
 		0b00000000,0b00000000,
@@ -28,7 +29,7 @@ w.write(new Uint8Array(
 		0b01000011,0b00001000,
 		0b01000001,0b00001000,
 	]:[
-		0x12,
+		addr,32,
 		0b00001000,0b00000000,
 		0b00010100,0b01101111,
 		0b00100010,0b00001001,
