@@ -42,6 +42,7 @@ a2b=(w,addr)=>(
 	)))
 );
 
-await $`stty -F /dev/ttyUSB0 115200 -onlcr -echo -echoctl`;
+await $`ls /dev|grep -P USB||true`.text()&&
+	await $`stty -F /dev/ttyUSB0 115200 -onlcr -echo -echoctl`;
 
 export{d,c2seg,a2b};

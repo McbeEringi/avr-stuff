@@ -7,7 +7,6 @@
 #define RCLK 7
 #define OE_ 3
 #define OE_CMP CMP0BUF
-#define ADDR 0x15
 
 const uint8_t num[]={
 	0b11111100,0b01100000,0b11011010,0b11110010,
@@ -28,15 +27,9 @@ const uint8_t s_hello[8]={// -HELLO!-
 };
 #define HELLO_BRI 0x1554
 
-// const uint8_t s_mode[4]={
-// 	0b01111100,0b11101110,0b00001010,0b00011111,// UART
-// 	//0,0b01100000,0b11011010,0b10011101,// I2C
-// };
 
-const uint8_t s_hash[4]={0b01101110,0b11101110,0b10110110,0b01101111};
-const uint16_t src_hash=SRC_HASH;
-#define HASH_BRI 0xaa55
-
+const uint8_t s_hash[]=SRC_HASH_SEG;
+const uint8_t s_addr[]=I2C_ADDR_SEG;
 
 const uint8_t bmap[]={252,224,148,0};// pow3 [.25,.5,.75,1].map(x=>(1-x**3)*256)
 
@@ -85,7 +78,7 @@ void main(){
 
 	TCB0.CTRLA=TCB_ENABLE_bm;
 
-	TWI0.SADDR=ADDR<<1;
+	TWI0.SADDR=I2C_ADDR<<1;
 	TWI0.SCTRLA=TWI_DIEN_bm|TWI_APIEN_bm|TWI_ENABLE_bm;
 
 	PORTA.DIRSET=_BV(SERCLK)|_BV(RCLK)|_BV(OE_);
@@ -106,10 +99,8 @@ void main(){
 		PORTA.OUTCLR=_BV(RCLK);
 		PORTA.OUTSET=_BV(RCLK);
 		if(ms==1000){FOR(8)disp[i]=s_hello[i];bri=HELLO_BRI;}
-		if(ms==2000){
-			FOR(4){disp[i]=s_hash[i];disp[i+4]=num[(src_hash>>((3-i)*4))&0xf];}
-			bri=HASH_BRI;
-		}
+		if(ms==2000){FOR(8)disp[i]=s_hash[i];bri=HASH_BRI;}
+		if(ms==3000){FOR(8)disp[i]=s_addr[i];bri=ADDR_BRI;}
 		wait();if(~ms)++ms;
 	}
 }
