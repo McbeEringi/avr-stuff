@@ -47,6 +47,7 @@ const uint8_t nec_re_on[]={0x82,0x6d,0xa2,0x5d};
 const uint8_t nec_re_dim[]={0x82,0x6d,0xbc,0x43};
 const uint8_t nec_re_lumi[]={0x82,0x6d,0x71,0x22};
 const uint8_t nec_re_off[]={0x82,0x6d,0xbe,0x41};
+const uint8_t nec_re_cycle[]={0x82,0x6d,0xbf,0x40};
 
 // AEHA Panasonic HK9327K
 // https://hello-world.blog.ss-blog.jp/2011-05-07
@@ -196,11 +197,11 @@ void main(){
 	while(1){
 		sleep();FOR(20)wait();
 		const uint8_t x=~VPORTA.IN;
-		uint8_t f=0;// ヒューズは書いたか?
-		if(x&(1<<6))send_aeha(pana_hk_on,40);//{send_nec(code_g);FOR(150)wait();FOR(4)FORBUF(send_sony(code_e,12))wait();}//send_aeha(code_f,64);
-		else if(x&(1<<7))send_aeha(pana_hk_dim,40);
-		else if(x&(1<<1))send_aeha(pana_hk_off,40);
-		else ++f;
-		if(!f){LED_ON;wait();LED_OFF;}
+		// ヒューズは書いたか?
+		if(x&(1<<6))send_nec(nec_re_cycle);//send_aeha(pana_hk_on,40);
+		else if(x&(1<<7))send_nec(nec_re_dim);//send_aeha(pana_hk_dim,40);
+		else if(x&(1<<1))send_nec(nec_re_off);//send_aeha(pana_hk_off,40);
+		// {LED_ON;wait();LED_OFF;}
+		// {send_nec(code_g);FOR(150)wait();FOR(4)FORBUF(send_sony(code_e,12))wait();}//send_aeha(code_f,64);
 	}
 }
