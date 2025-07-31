@@ -73,18 +73,6 @@ const uint8_t code_i[]={0xca,0x5a,0x33,0xcc};// CHDN
 #define LED_PORT PORTA
 #define LED_PIN 2
 
-
-#ifdef REV1
-	#define IR_WO 2
-	#define LED_PORT PORTA
-	#define LED_PIN 3
-#endif
-#ifdef REV2
-	#define IR_WO 0
-	#define LED_PORT PORTA
-	#define LED_PIN 2
-#endif
-
 ////////////////////////////////////////////////////////////
 
 #define LED_ON LED_PORT.OUTSET=1<<LED_PIN
