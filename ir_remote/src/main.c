@@ -1,4 +1,4 @@
-// SW: PA6 PA7 PA1
+// SW: PA6 PA7 PA1 PA2
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -70,13 +70,8 @@ const uint8_t code_h[]={0xca,0x5a,0x35,0xca};// CHUP
 const uint8_t code_i[]={0xca,0x5a,0x33,0xcc};// CHDN
 
 #define IR_WO 0
-#define LED_PORT PORTA
-#define LED_PIN 2
 
 ////////////////////////////////////////////////////////////
-
-#define LED_ON LED_PORT.OUTSET=1<<LED_PIN
-#define LED_OFF LED_PORT.OUTCLR=1<<LED_PIN
 
 
 #if defined(PORTB)&&!defined(PORTF)
@@ -149,7 +144,7 @@ static void set_56k_wait(t){
 static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}// TCB0
 
 static void sleep(){sei();SLPCTRL.CTRLA=SLPCTRL_SMODE_PDOWN_gc|SLPCTRL_SEN_bm;sleep_cpu();cli();}
-ISR(PORTA_PORT_vect){PORTA.INTFLAGS=PORT_INT6_bm|PORT_INT7_bm|PORT_INT1_bm;}
+ISR(PORTA_PORT_vect){PORTA.INTFLAGS=PORT_INT6_bm|PORT_INT7_bm|PORT_INT1_bm|PORT_INT2_bm;}
 
 static void send_common(const uint8_t ll,const uint8_t *x,const uint8_t l){
 	IR_ON;FOR(ll)wait();IR_OFF;FOR(ll/2)wait();
@@ -176,11 +171,11 @@ void main(){
 	TCB0.CCMP=250;// init any 250==1ms
 
 	IR_PORT.DIRSET=1<<IR_PIN;
-	LED_PORT.DIRSET=1<<LED_PIN;
 
 	PORTA.PIN6CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;// BOTHEDGES|LEVEL
-	PORTA.PIN7CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;// BOTHEDGES|LEVEL
-	PORTA.PIN1CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;// BOTHEDGES|LEVEL
+	PORTA.PIN7CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;
+	PORTA.PIN1CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;
+	PORTA.PIN2CTRL=PORT_PULLUPEN_bm|PORT_ISC_BOTHEDGES_gc;
 
 	while(1){
 		sleep();FOR(20)wait();
@@ -189,7 +184,7 @@ void main(){
 		if(x&(1<<6))send_nec(nec_re_cycle);//send_aeha(pana_hk_on,40);
 		else if(x&(1<<7))send_nec(nec_re_dim);//send_aeha(pana_hk_dim,40);
 		else if(x&(1<<1))send_nec(nec_re_off);//send_aeha(pana_hk_off,40);
-		// {LED_ON;wait();LED_OFF;}
+		else if(x&(1<<2))send_nec(nec_re_lumi);//send_aeha(pana_hk_off,40);
 		// {send_nec(code_g);FOR(150)wait();FOR(4)FORBUF(send_sony(code_e,12))wait();}//send_aeha(code_f,64);
 	}
 }
