@@ -51,10 +51,12 @@ static void row(uint8_t i){
 	TCA0.SPLIT.HCMP0=w[++i];
 	TCA0.SPLIT.HCMP1=w[++i];
 	TCA0.SPLIT.HCMP2=w[++i];
+	TCA0.SPLIT.LCNT=
+	TCA0.SPLIT.HCNT=0;
 }
 
 int main() {
-	_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB,CLKCTRL_PDIV_16X_gc|CLKCTRL_PEN_bm);
+	_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB,CLKCTRL_PDIV_8X_gc|CLKCTRL_PEN_bm);
 	PORTA.DIRSET=0xfe;
 	PORTB.DIRSET=0x0f;
 
@@ -74,18 +76,33 @@ int main() {
 	TCB0.CTRLA=
 		TCB_CLKSEL_CLKDIV2_gc|
 		TCB_ENABLE_bm;
-	TCB0.CCMP=(F_CPU/16/2)/1000-1;// TOP 1ms
+	TCB0.CCMP=(F_CPU/8/2)/1000-1;// TOP 1ms
 
 
 	uint8_t t=0;
+	uint8_t mode=0;
 	while(1){
-		for(uint8_t i=0;i<NUM_LED;++i){
-			w[i]=(i2t[i]+NUM_LED-t/8)%NUM_LED*2;
-		}
 		for(uint8_t i=0;i<NUM_ROW;++i){
-			row(i);wait();wait();
+			row(i);
+			for(uint8_t i=0;i<NUM_LED;++i){
+				switch(mode){
+					case 0:{
+						w[i]=(i2t[i]+NUM_LED-t/4)%NUM_LED*2;
+						break;
+					}
+					case 1:{
+						w[i]=((i2p[i]&0x0f)+NUM_LED-t/4)%NUM_LED*2;
+						break;
+					}
+					case 2:{
+						w[i]=((i2p[i]>>4)+NUM_LED-t/4)%NUM_LED*2;
+						break;
+					}
+				}
+			}
+			++t;
+			if(NUM_LED*4==t){t=0;mode=++mode%3;}
+			wait();
 		}
-		++t;
-		if(NUM_LED*8==t)t=0;
 	}
 }
