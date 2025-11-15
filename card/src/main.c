@@ -6,6 +6,7 @@
 #define NUM_W 10
 #define NUM_H 7 
 #define FPS 100
+#define SET_WAIT(A,B) TCB0.CCMP=(F_CPU/8/2/FPS)*(B)/(A)-1
 
 uint8_t w[NUM_LED]={0};
 // r1c1
@@ -79,13 +80,12 @@ int main() {
 	TCB0.CTRLA=
 		TCB_CLKSEL_CLKDIV2_gc|
 		TCB_ENABLE_bm;
-	TCB0.CCMP=((F_CPU/8/2)/FPS)/(NUM_ROW+2)-1;
+	SET_WAIT(1,1);
 
 
 	uint16_t t=0;
 	uint8_t mode=0;
 	while(1){
-		row(NUM_ROW+1);
 		for(uint8_t i=0;i<NUM_LED;++i){
 			switch(mode){
 				case 0:{
@@ -105,9 +105,12 @@ int main() {
 		++t;
 		while(100<=t){t-=100;mode=++mode%3;}
 		wait();
+		SET_WAIT(NUM_ROW+3,1);
 		for(uint8_t i=0;i<NUM_ROW;++i){
 			row(i);
 			wait();
 		}
+		row(NUM_ROW+1);
+		SET_WAIT(NUM_ROW+3,3);
 	}
 }
