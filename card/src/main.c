@@ -3,6 +3,9 @@
 #define NUM_LED 30
 #define NUM_COL 6
 #define NUM_ROW 5
+#define NUM_W 10
+#define NUM_H 7 
+#define FPS 100
 
 uint8_t w[NUM_LED]={0};
 // r1c1
@@ -76,32 +79,34 @@ int main() {
 	TCB0.CTRLA=
 		TCB_CLKSEL_CLKDIV2_gc|
 		TCB_ENABLE_bm;
-	TCB0.CCMP=(F_CPU/8/2)/1000-1;// TOP 1ms
+	TCB0.CCMP=((F_CPU/8/2)/FPS)/(NUM_ROW+2)-1;
 
 
-	uint8_t t=0;
+	uint16_t t=0;
 	uint8_t mode=0;
 	while(1){
-		for(uint8_t i=0;i<NUM_ROW;++i){
-			row(i);
-			for(uint8_t i=0;i<NUM_LED;++i){
-				switch(mode){
-					case 0:{
-						w[i]=(i2t[i]+NUM_LED-t/4)%NUM_LED*2;
-						break;
-					}
-					case 1:{
-						w[i]=((i2p[i]&0x0f)+NUM_LED-t/4)%NUM_LED*2;
-						break;
-					}
-					case 2:{
-						w[i]=((i2p[i]>>4)+NUM_LED-t/4)%NUM_LED*2;
-						break;
-					}
+		row(NUM_ROW+1);
+		for(uint8_t i=0;i<NUM_LED;++i){
+			switch(mode){
+				case 0:{
+					w[i]=(i2t[i]+NUM_LED-t*NUM_LED/100-1)%NUM_LED*2;
+					break;
+				}
+				case 1:{
+					w[i]=((i2p[i]&0x0f)+NUM_LED-t*NUM_W/100-1)%NUM_LED*2;
+					break;
+				}
+				case 2:{
+					w[i]=((i2p[i]>>4)+NUM_LED-t*NUM_H/100-1)%NUM_LED*2;
+					break;
 				}
 			}
-			++t;
-			if(NUM_LED*4==t){t=0;mode=++mode%3;}
+		}
+		++t;
+		while(100<=t){t-=100;mode=++mode%3;}
+		wait();
+		for(uint8_t i=0;i<NUM_ROW;++i){
+			row(i);
 			wait();
 		}
 	}
