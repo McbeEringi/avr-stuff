@@ -89,21 +89,21 @@ int main() {
 		for(uint8_t i=0;i<NUM_LED;++i){
 			switch(mode){
 				case 0:{
-					w[i]=(i2t[i]+NUM_LED-t*NUM_LED/100-1)%NUM_LED*2;
+					w[i]=(i2t[i]+NUM_LED*10-(uint16_t)t*NUM_LED/100-1)%NUM_LED*2;
 					break;
 				}
 				case 1:{
-					w[i]=((i2p[i]&0x0f)+NUM_LED-t*NUM_W/100-1)%NUM_LED*2;
+					w[i]=((i2p[i]&0x0f)+NUM_W*10-(uint16_t)t*NUM_W/100-1)%NUM_W*6;
 					break;
 				}
 				case 2:{
-					w[i]=((i2p[i]>>4)+NUM_LED-t*NUM_H/100-1)%NUM_LED*2;
+					w[i]=((i2p[i]>>4)+NUM_H*10-(uint16_t)t*NUM_H/100-1)%NUM_H*9;
 					break;
 				}
 			}
 		}
 		++t;
-		while(100<=t){t-=100;mode=++mode%3;}
+		while(400<=t){t-=400;mode=++mode%3;}
 		wait();
 		SET_WAIT(NUM_ROW+3,1);
 		for(uint8_t i=0;i<NUM_ROW;++i){

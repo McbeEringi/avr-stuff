@@ -11,8 +11,13 @@ void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}
 
 
 const uint8_t w[]={
-	142,10,238,188,32,28,158,65,65,65,0,122,58,0,42,58,30,0,30,58,56,26,46,65,65,65,0,0,0,0
+	// 142,10,238,188,32,28,158,65,65,65,0,122,58,0,42,58,30,0,30,58,56,26,46,65,65,65,0,0,0,0
 	// 110,158,28,28,252,0,124,158,156,65,0,0,0,0
+	124,158,156,0,65,65,65,0,0
+
+};
+const uint8_t nefuda[]={
+0,0,182,252,252,118,158,42,0,0,0,182,252,252,118,158,42,0,0,0,182,252,252,118,158,42,0,0,0,182,252,252,118,158,42,0,0,0,182,252,252,118,158,42,0,0,0,182,252,252,118,158,42,0,0,0,224,252,252,118,158,42,0,0
 };
 
 const uint8_t addr[]={
@@ -42,17 +47,40 @@ int main(void) {
 	TWI0.MSTATUS=TWI_BUSSTATE_IDLE_gc;
 
 	uint8_t c=0;
+	uint8_t t=0;
+	uint8_t mode=0;
 	while(1){
-		for(uint8_t i=0;i<sizeof(addr);++i){
-			TWI_begin(addr[i]);
-			for(uint8_t j=0;j<8;++j)TWI_write(w[(c+i*8+j)%sizeof(w)]);
-			TWI_write(0xaa);TWI_write(0xaa);
-			TWI_end();
+		switch(mode){
+			case 0:{
+				for(uint8_t i=0;i<sizeof(addr);++i){
+					TWI_begin(addr[i]);
+					for(uint8_t j=0;j<8;++j)TWI_write(w[(c+i*8+j)%sizeof(w)]);
+					TWI_write(0xaa);TWI_write(0xaa);
+					TWI_end();
+				}
+
+				FOR(100)wait();// 0.2 s
+
+				++c;
+				if(sizeof(w)<=c)c=0;
+
+				++t;
+				if(25<t){t=0;mode=1;}
+				break;
+			}
+			case 1:{
+				for(uint8_t i=0;i<sizeof(addr);++i){
+					TWI_begin(addr[i]);
+					for(uint8_t j=0;j<8;++j)TWI_write(nefuda[i*8+j]);
+					TWI_write(0xaa);TWI_write(0xaa);
+					TWI_end();
+				}
+				FOR(100)wait();// 0.2s
+
+				++t;
+				if(50<t){t=0;mode=0;}
+				break;
+			}
 		}
-
-		FOR(100)wait();// 0.2s
-
-		++c;
-		if(sizeof(w)<=c)c=0;
 	}
 }
