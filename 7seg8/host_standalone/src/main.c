@@ -16,6 +16,10 @@ const uint8_t w[]={
 	124,158,156,0,65,65,65,0,0
 
 };
+const uint8_t techbook[]={
+188,32,120,118,56,30,56,182,118,58,30,158,42,0,96,246,0,0,0,0
+
+};
 const uint8_t nefuda[]={
 0,0,182,252,252,118,158,42,0,0,0,182,252,252,118,158,42,0,0,0,182,252,252,118,158,42,0,0,0,182,252,252,118,158,42,0,0,0,182,252,252,118,158,42,0,0,0,182,252,252,118,158,42,0,0,0,224,252,252,118,158,42,0,0
 };
@@ -35,6 +39,15 @@ void TWI_write(uint8_t x){
 }
 void TWI_end(){TWI0.MCTRLB=TWI_MCMD_STOP_gc;}
 
+void send(uint8_t *w,uint8_t l,uint8_t o){
+	for(uint8_t i=0;i<sizeof(addr);++i){
+		TWI_begin(addr[i]);
+		for(uint8_t j=0;j<8;++j)TWI_write(w[(o+i*8+j)%l]);
+		TWI_write(0xaa);TWI_write(0xaa);
+		TWI_end();
+	}
+}
+
 
 int main(void) {
 	_PROTECTED_WRITE(CLKCTRL.MCLKCTRLB,0);
@@ -52,13 +65,7 @@ int main(void) {
 	while(1){
 		switch(mode){
 			case 0:{
-				for(uint8_t i=0;i<sizeof(addr);++i){
-					TWI_begin(addr[i]);
-					for(uint8_t j=0;j<8;++j)TWI_write(w[(c+i*8+j)%sizeof(w)]);
-					TWI_write(0xaa);TWI_write(0xaa);
-					TWI_end();
-				}
-
+				send(w,sizeof(w),c);
 				FOR(100)wait();// 0.2 s
 
 				++c;
@@ -69,12 +76,18 @@ int main(void) {
 				break;
 			}
 			case 1:{
-				for(uint8_t i=0;i<sizeof(addr);++i){
-					TWI_begin(addr[i]);
-					for(uint8_t j=0;j<8;++j)TWI_write(nefuda[i*8+j]);
-					TWI_write(0xaa);TWI_write(0xaa);
-					TWI_end();
-				}
+				send(techbook,sizeof(techbook),c);
+				FOR(100)wait();// 0.2 s
+
+				++c;
+				if(sizeof(techbook)<=c)c=0;
+
+				++t;
+				if(50<t){t=0;mode=2;}
+				break;
+			}
+			case 2:{
+				send(nefuda,64,0);
 				FOR(100)wait();// 0.2s
 
 				++t;
