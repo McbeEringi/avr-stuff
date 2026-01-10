@@ -14,23 +14,24 @@ uint8_t w[NUM_LED]={0};
 // r1c3
 // r1c4
 // r1c5
+// r1c6
 // r2c1
 // r2c2
 // ...
 
 const uint8_t i2p[]={
-	0x05,0x59,0x65,0x64,0x50,0x04,
-	0x06,0x49,0x66,0x63,0x40,0x03,
+	0x09,0x59,0x65,0x64,0x50,0x00,
+	0x08,0x49,0x66,0x63,0x40,0x01,
 	0x07,0x39,0x67,0x62,0x30,0x02,
-	0x08,0x29,0x68,0x61,0x20,0x01,
-	0x09,0x19,0x69,0x60,0x10,0x00
+	0x06,0x29,0x68,0x61,0x20,0x03,
+	0x05,0x19,0x69,0x60,0x10,0x04
 };
 const uint8_t i2t[]={
-	0,9,14,15,20,29,
-	1,8,13,16,21,28,
-	2,7,12,17,22,27,
-	3,6,11,18,23,26,
-	4,5,10,19,24,25
+	9,14,19,20,25,0,
+	8,13,18,21,26,1,
+	7,12,17,22,27,2,
+	6,11,16,23,28,3,
+	5,10,15,24,29,4
 };
 
 static void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}
@@ -41,20 +42,20 @@ static void row(uint8_t i){
 	uint8_t x=~(1<<i);
 	VPORTA.OUT=
 		(((x>>0)&1)<<2)|
-		(((x>>1)&1)<<1)|
-		(((x>>2)&1)<<6)|
+		(((x>>1)&1)<<6)|
+		(((x>>2)&1)<<1)|
 		(((x>>3)&1)<<7);
 	VPORTB.OUT=
 		(((x>>4)&1)<<3);
 
 	// flush_column
 	i*=NUM_COL;
-	TCA0.SPLIT.LCMP0=w[i];
-	TCA0.SPLIT.LCMP1=w[++i];
-	TCA0.SPLIT.LCMP2=w[++i];
-	TCA0.SPLIT.HCMP0=w[++i];
-	TCA0.SPLIT.HCMP1=w[++i];
+	TCA0.SPLIT.HCMP1=w[i];
 	TCA0.SPLIT.HCMP2=w[++i];
+	TCA0.SPLIT.HCMP0=w[++i];
+	TCA0.SPLIT.LCMP1=w[++i];
+	TCA0.SPLIT.LCMP0=w[++i];
+	TCA0.SPLIT.LCMP2=w[++i];
 	TCA0.SPLIT.LCNT=
 	TCA0.SPLIT.HCNT=0;
 }
