@@ -96,8 +96,9 @@ int main() {
 	TCB0.CTRLA=TCB_ENABLE_bm;
 	TCB0.CCMP=F_CPU/4e4-1;// 40kHz
 
+	VREF.CTRLA=VREF_ADC0REFSEL_2V5_gc;
 	ADC0.MUXPOS=ADC_MUXPOS_AIN7_gc;
-	ADC0.CTRLC=ADC_SAMPCAP_bm|ADC_REFSEL_VDDREF_gc|ADC_PRESC_DIV256_gc;// 50k < CLK_ADC < 1.5M
+	ADC0.CTRLC=ADC_SAMPCAP_bm|ADC_PRESC_DIV256_gc;// 50k < CLK_ADC < 1.5M
 	ADC0.CTRLB=ADC_SAMPNUM_ACC64_gc;
 	ADC0.CTRLA=ADC_FREERUN_bm|ADC_ENABLE_bm;
 	ADC0.COMMAND=ADC_STCONV_bm;
@@ -132,9 +133,9 @@ int main() {
 	});
 	cursor(0,1);print(nyan);print(nyan);
 
-	// spk(3429,50);
-	// spk(3849,50);
-	// spk(5138,50);
+	spk(3429,50);
+	spk(3849,50);
+	spk(5138,50);
 
 	uint8_t h=0;
 	while(1){
@@ -145,7 +146,7 @@ int main() {
 		{
 			uint16_t x=ADC0.RES>>6;
 			x*=10;
-			x/=69;// v = x * 3.6/1023 * (10+4.7*2)/4.7; v/x==69
+			x/=78;// v = x * 2.5/1023 * 24.7/4.7; x/v==78
 			uint8_t w[9]={0,' ',0,0,'.',0,' ','V',TERM};
 			for(uint16_t j=0,i=100,t;i;i/=10,++j){
 				t=x/i;x-=t*i;
