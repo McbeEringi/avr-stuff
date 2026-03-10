@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <util/delay.h>
+#include "hira.h"
 
 #define NP (1<<2)
 #define SPK (1<<5)
@@ -8,15 +9,17 @@
 #define BTN_RU (1<<6)
 #define BTN_RD (1<<1)
 #define V_SENSE (1<<7)
+#define MD_A (1<<2)
+#define MD_B (1<<3)
 #define A {asm("nop");asm("nop");asm("nop");}
 #define B {A;A;A;A;}
 
 #define F_SCL 400000UL
 #define TWI_BAUD(X) (((F_CPU/(X))-10)/2)
-#define WAIT_TWI_WIF() do{}while(!(TWI0.MSTATUS&TWI_WIF_bm)&&(TWI0.MSTATUS&TWI_RXACK_bm))
 #define LCD_ADDR 0x7c
 #define LCD_CONTRAST 0b010100
 
+void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}
 
 static void led(uint8_t r,uint8_t g,uint8_t b){
 	for(uint8_t i=0;i<3;++i){
@@ -36,15 +39,19 @@ static void led_hsv(uint8_t h,uint8_t s,uint8_t v){
 		default:{led(d,u,f);break;}
 	}
 }
-static void tone(uint8_t d,uint16_t ms){
-	for(uint16_t t=0;t<ms;++t){
-		PORTA.OUTSET=SPK;_delay_us(1);
-		PORTA.OUTCLR=SPK;_delay_us(d);
+static void spk(uint16_t d,uint16_t n){
+	n*=40;
+	for(uint16_t i=0,t=0;i<n;++i){
+		if(t<0x8000>>2)PORTA.OUTSET=SPK;
+		else PORTA.OUTCLR=SPK;
+		t+=d;
+		wait();
 	}
+	PORTA.OUTCLR=SPK;
 }
 
-static void TWI_begin(){TWI0.MADDR=LCD_ADDR;WAIT_TWI_WIF();}
-static void TWI_write(uint8_t x){TWI0.MDATA=x;WAIT_TWI_WIF();}
+static void TWI_begin(){TWI0.MADDR=LCD_ADDR;while(!(TWI0.MSTATUS&TWI_WIF_bm));}
+static void TWI_write(uint8_t x){TWI0.MDATA=x;while(!(TWI0.MSTATUS&TWI_WIF_bm)||TWI0.MSTATUS&TWI_RXACK_bm);}
 static void TWI_end(){TWI0.MCTRLB=TWI_MCMD_STOP_gc;}
 static void LCD_cmd(const uint8_t x){TWI_begin();TWI_write(0);TWI_write(x);TWI_end();}
 static void LCD_cmds(const uint8_t *p){
@@ -69,14 +76,30 @@ static void print(const char *p){
 	TWI_end();
 }
 static void cursor(uint8_t x,uint8_t y){LCD_cmd(0x80|(y==0?0:0x40)|(x&0x7));}
+static void cgram(uint8_t i,const uint8_t *w){
+	TWI_begin();
+	TWI_write(0x80);TWI_write(0x40|((i&7)<<3));
+	TWI_write(0x40);for(uint8_t j=0;j<8;++j)TWI_write(w[j]);
+	TWI_end();
+}
 
-const char neko[]={200, 186, 198, 197, 218, 217, 214, 32, 0};
+const char neko[]={200, 186, 198, 197, 218, 217, 214, 0};
 const char nyan[]={198, 172, 176, 221, 0};
 
 int main() {
 	_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB,0);
 	PORTMUX.CTRLC=PORTMUX_TCA00_ALTERNATE_gc;
 	PORTA.DIRSET=NP|SPK;
+	PORTB.DIRSET=MD_A|MD_B;
+
+	TCB0.CTRLA=TCB_ENABLE_bm;
+	TCB0.CCMP=F_CPU/4e4-1;// 40kHz
+
+	ADC0.MUXPOS=ADC_MUXPOS_AIN7_gc;
+	ADC0.CTRLC=ADC_SAMPCAP_bm|ADC_REFSEL_VDDREF_gc|ADC_PRESC_DIV16_gc;// 20M/16 < 1.5M
+	ADC0.CTRLB=ADC_SAMPNUM_ACC16_gc;
+	ADC0.CTRLA=ADC_FREERUN_bm|ADC_ENABLE_bm;
+	ADC0.COMMAND=ADC_STCONV_bm;
 
 	TWI0.MBAUD=TWI_BAUD(F_SCL);
 	TWI0.MCTRLA=TWI_ENABLE_bm;
@@ -84,9 +107,34 @@ int main() {
 	LCD_init();
 	LCD_contrast(LCD_CONTRAST);
 
-	cursor(0,0);print(neko);
+	// cgram(1,hira_a);
+	// cgram(2,hira_i);
+	// cgram(3,hira_u);
+	// cgram(4,hira_e);
+	// cgram(5,hira_o);
+	// cgram(1,hira_ka);
+	// cgram(2,hira_ki);
+	// cgram(3,hira_ku);
+	// cgram(4,hira_ke);
+	// cgram(5,hira_ko);
+	// cursor(0,0);print((const uint8_t[]){1,2,3,4,5,0});
+	// cursor(0,0);print(neko);
+	cgram(1,(const uint8_t[]){
+		0b00011,
+		0b00110,
+		0b01100,
+		0b11110,
+		0b00111,
+		0b01110,
+		0b11000,
+		0b00000,
+	});
+	cursor(0,0);print((const uint8_t[]){1,0});
 	cursor(0,1);print(nyan);print(nyan);
 
+	// spk(3429,50);
+	// spk(3849,50);
+	// spk(5138,50);
 
 	uint8_t h=0;
 	while(1){
@@ -94,5 +142,17 @@ int main() {
 		_delay_us(400);
 		++h;
 		_delay_ms(50);
+		{
+			uint16_t x=ADC0.RES>>4;
+			x*=10;
+			x/=69;// v = x * 3.6/1023 * (10+4.7*2)/4.7; v/x==69
+			uint8_t w[7]={1,1,0x2e,1,0x20,0x56,0};
+			for(uint16_t j=0,i=100,t;i;i/=10,++j){
+				t=x/i;
+				x-=t*i;
+				w[j<2?j:j+1]=0b110000|t;
+			}
+			cursor(2,0);print(w);
+		}
 	}
 }
