@@ -13,7 +13,7 @@
 
 #define F_SCL 400000UL
 #define TWI_BAUD(X) (((F_CPU/(X))-10)/2)
-#define WAIT_TWI_WIF() do{}while(!(TWI0.MSTATUS&TWI_WIF_bm))
+#define WAIT_TWI_WIF() do{}while(!(TWI0.MSTATUS&TWI_WIF_bm)&&(TWI0.MSTATUS&TWI_RXACK_bm))
 #define LCD_ADDR 0x7c
 #define LCD_CONTRAST 0b010100
 
@@ -51,7 +51,7 @@ static void LCD_cmds(const uint8_t *p){
 	TWI_begin();
 	for(;*p;++p){
 		TWI_write(*(p+1)?0x80:0);TWI_write(*p);
-		if(*p>>3==0b1101)_delay_ms(200);else _delay_us(30);
+		if(*p>>3==0b1101)_delay_ms(200);
 	}
 	TWI_end();
 }
@@ -62,7 +62,6 @@ static void LCD_init(){
 }
 static void LCD_contrast(uint8_t c){
 	LCD_cmds((const uint8_t[]){0x39,0x70|(c&0xf),0x54|((c>>4)&3),0x38,0});
-
 }
 static void print(const char *p){
 	TWI_begin();
