@@ -20,6 +20,27 @@
 #define LCD_ADDR 0x7c
 #define LCD_CONTRAST 0b010100
 
+const uint8_t km[]={
+	0b00100,
+	0b00101,
+	0b00110,
+	0b00101,
+	0b00000,
+	0b00001,
+	0b00010,
+	0b00100,
+};
+const uint8_t ph[]={
+	0b00000,
+	0b11010,
+	0b10101,
+	0b10101,
+	0b00000,
+	0b01000,
+	0b01100,
+	0b01010
+};
+
 void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}
 
 static void led(uint8_t r,uint8_t g,uint8_t b){
@@ -131,7 +152,10 @@ int main() {
 		0b11000,
 		0b00000,
 	});
-	cursor(0,1);print(nyan);print(nyan);
+	// cursor(0,1);print(nyan);print(nyan);
+	cgram(1,km);
+	cgram(2,ph);
+	cursor(0,1);print((const uint8_t[]){'6','0',' ',1,2,TERM});
 
 	spk(3429,50);
 	spk(3849,50);
