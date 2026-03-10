@@ -13,6 +13,7 @@
 #define MD_B (1<<3)
 #define A {asm("nop");asm("nop");asm("nop");}
 #define B {A;A;A;A;}
+#define TERM 0xa0
 
 #define F_SCL 400000UL
 #define TWI_BAUD(X) (((F_CPU/(X))-10)/2)
@@ -70,9 +71,9 @@ static void LCD_init(){
 static void LCD_contrast(uint8_t c){
 	LCD_cmds((const uint8_t[]){0x39,0x70|(c&0xf),0x54|((c>>4)&3),0x38,0});
 }
-static void print(const char *p){
+static void print(const uint8_t *p){
 	TWI_begin();
-	TWI_write(0x40);for(;*p;p++)TWI_write(*p);
+	TWI_write(0x40);for(;*p!=TERM;p++)TWI_write(*p);
 	TWI_end();
 }
 static void cursor(uint8_t x,uint8_t y){LCD_cmd(0x80|(y==0?0:0x40)|(x&0x7));}
@@ -83,8 +84,8 @@ static void cgram(uint8_t i,const uint8_t *w){
 	TWI_end();
 }
 
-const char neko[]={200, 186, 198, 197, 218, 217, 214, 0};
-const char nyan[]={198, 172, 176, 221, 0};
+const uint8_t neko[]={200, 186, 198, 197, 218, 217, 214, TERM};
+const uint8_t nyan[]={198, 172, 176, 221, TERM};
 
 int main() {
 	_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB,0);
@@ -96,8 +97,8 @@ int main() {
 	TCB0.CCMP=F_CPU/4e4-1;// 40kHz
 
 	ADC0.MUXPOS=ADC_MUXPOS_AIN7_gc;
-	ADC0.CTRLC=ADC_SAMPCAP_bm|ADC_REFSEL_VDDREF_gc|ADC_PRESC_DIV16_gc;// 20M/16 < 1.5M
-	ADC0.CTRLB=ADC_SAMPNUM_ACC16_gc;
+	ADC0.CTRLC=ADC_SAMPCAP_bm|ADC_REFSEL_VDDREF_gc|ADC_PRESC_DIV256_gc;// 50k < CLK_ADC < 1.5M
+	ADC0.CTRLB=ADC_SAMPNUM_ACC64_gc;
 	ADC0.CTRLA=ADC_FREERUN_bm|ADC_ENABLE_bm;
 	ADC0.COMMAND=ADC_STCONV_bm;
 
@@ -119,7 +120,7 @@ int main() {
 	// cgram(5,hira_ko);
 	// cursor(0,0);print((const uint8_t[]){1,2,3,4,5,0});
 	// cursor(0,0);print(neko);
-	cgram(1,(const uint8_t[]){
+	cgram(0,(const uint8_t[]){
 		0b00011,
 		0b00110,
 		0b01100,
@@ -129,7 +130,6 @@ int main() {
 		0b11000,
 		0b00000,
 	});
-	cursor(0,0);print((const uint8_t[]){1,0});
 	cursor(0,1);print(nyan);print(nyan);
 
 	// spk(3429,50);
@@ -143,16 +143,15 @@ int main() {
 		++h;
 		_delay_ms(50);
 		{
-			uint16_t x=ADC0.RES>>4;
+			uint16_t x=ADC0.RES>>6;
 			x*=10;
 			x/=69;// v = x * 3.6/1023 * (10+4.7*2)/4.7; v/x==69
-			uint8_t w[7]={1,1,0x2e,1,0x20,0x56,0};
+			uint8_t w[9]={0,' ',0,0,'.',0,' ','V',TERM};
 			for(uint16_t j=0,i=100,t;i;i/=10,++j){
-				t=x/i;
-				x-=t*i;
-				w[j<2?j:j+1]=0b110000|t;
+				t=x/i;x-=t*i;
+				w[(const uint8_t[]){2,3,5}[j]]=0b110000|t;
 			}
-			cursor(2,0);print(w);
+			cursor(0,0);print(w);
 		}
 	}
 }
