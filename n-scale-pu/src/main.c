@@ -1,6 +1,6 @@
 #include <avr/io.h>
 #include <util/delay.h>
-#include "hira.h"
+#include "glyph.h"
 
 #define NP (1<<2)
 #define SPK (1<<5)
@@ -19,27 +19,6 @@
 #define TWI_BAUD(X) (((F_CPU/(X))-10)/2)
 #define LCD_ADDR 0x7c
 #define LCD_CONTRAST 0b010100
-
-const uint8_t km[]={
-	0b00100,
-	0b00101,
-	0b00110,
-	0b00101,
-	0b00000,
-	0b00001,
-	0b00010,
-	0b00100,
-};
-const uint8_t ph[]={
-	0b00000,
-	0b11010,
-	0b10101,
-	0b10101,
-	0b00000,
-	0b01000,
-	0b01100,
-	0b01010
-};
 
 void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}
 
@@ -130,31 +109,9 @@ int main() {
 	LCD_init();
 	LCD_contrast(LCD_CONTRAST);
 
-	// cgram(1,hira_a);
-	// cgram(2,hira_i);
-	// cgram(3,hira_u);
-	// cgram(4,hira_e);
-	// cgram(5,hira_o);
-	// cgram(1,hira_ka);
-	// cgram(2,hira_ki);
-	// cgram(3,hira_ku);
-	// cgram(4,hira_ke);
-	// cgram(5,hira_ko);
-	// cursor(0,0);print((const uint8_t[]){1,2,3,4,5,0});
 	// cursor(0,0);print(neko);
-	cgram(0,(const uint8_t[]){
-		0b00011,
-		0b00110,
-		0b01100,
-		0b11110,
-		0b00111,
-		0b01110,
-		0b11000,
-		0b00000,
-	});
 	// cursor(0,1);print(nyan);print(nyan);
-	cgram(1,km);
-	cgram(2,ph);
+	cgram(0,zap);cgram(1,kmph_l);cgram(2,kmph_r);
 	cursor(0,1);print((const uint8_t[]){'6','0',' ',1,2,TERM});
 
 	spk(3429,50);
