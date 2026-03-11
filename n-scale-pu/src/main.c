@@ -11,15 +11,13 @@
 #define V_SENSE (1<<7)
 #define MD_A (1<<2)
 #define MD_B (1<<3)
-#define A {asm("nop");asm("nop");asm("nop");}
-#define B {A;A;A;A;}
+#define A {asm("nop");asm("nop");}
+#define B {A;A;A;A;A;A;A;A;}
 #define TERM 0xa0
 
 #define F_SCL 400000UL
 #define TWI_BAUD(X) (((F_CPU/(X))-10)/2)
 #define LCD_ADDR 0x7c
-#define LCD_CONTRAST_12V 0b010100
-#define LCD_CONTRAST_09V 0b100000
 
 void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}
 
@@ -108,7 +106,6 @@ int main() {
 	TWI0.MCTRLA=TWI_ENABLE_bm;
 	TWI0.MSTATUS=TWI_BUSSTATE_IDLE_gc;
 	LCD_init();
-	LCD_contrast(LCD_CONTRAST_09V);
 
 	// cursor(0,0);print(neko);
 	// cursor(0,1);print(nyan);print(nyan);
@@ -121,13 +118,16 @@ int main() {
 
 	uint8_t h=0;
 	while(1){
-		for(uint8_t i=0;i<8;++i)led_hsv(h+(i<<5),255,16);
+		for(uint8_t i=0;i<8;++i)led_hsv(h+(i<<5),128,16);
 		_delay_us(400);
 		++h;
 		_delay_ms(50);
 		{
 			uint16_t x=ADC0.RES>>6;
+			// 0b010100; ADC0.RES>>6 == 937 == 0x3a9 @12V
+			// 0b011000; ADC0.RES>>6 == 710 == 0x2c6 @9V
 			x*=10;
+			LCD_contrast(38-(x>>9));
 			x/=78;// v = x * 2.5/1023 * 24.7/4.7; x/v==78
 			uint8_t w[9]={0,' ',0,0,'.',0,' ','V',TERM};
 			for(uint16_t j=0,i=100,t;i;i/=10,++j){
