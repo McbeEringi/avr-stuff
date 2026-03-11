@@ -18,7 +18,8 @@
 #define F_SCL 400000UL
 #define TWI_BAUD(X) (((F_CPU/(X))-10)/2)
 #define LCD_ADDR 0x7c
-#define LCD_CONTRAST 0b010100
+#define LCD_CONTRAST_12V 0b010100
+#define LCD_CONTRAST_09V 0b100000
 
 void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}
 
@@ -107,7 +108,7 @@ int main() {
 	TWI0.MCTRLA=TWI_ENABLE_bm;
 	TWI0.MSTATUS=TWI_BUSSTATE_IDLE_gc;
 	LCD_init();
-	LCD_contrast(LCD_CONTRAST);
+	LCD_contrast(LCD_CONTRAST_09V);
 
 	// cursor(0,0);print(neko);
 	// cursor(0,1);print(nyan);print(nyan);
