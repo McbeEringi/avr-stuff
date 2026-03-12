@@ -1,4 +1,5 @@
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include <util/delay.h>
 #include "glyph.h"
 
@@ -50,6 +51,8 @@ static void spk(uint16_t d,uint16_t n){
 	PORTA.OUTCLR=SPK;
 }
 
+const uint8_t neko[]={200, 186, 198, 197, 218, 217, 214, TERM};
+const uint8_t nyan[]={198, 172, 176, 221, TERM};
 static void TWI_begin(){TWI0.MADDR=LCD_ADDR;while(!(TWI0.MSTATUS&TWI_WIF_bm));}
 static void TWI_write(uint8_t x){TWI0.MDATA=x;while(!(TWI0.MSTATUS&TWI_WIF_bm)||TWI0.MSTATUS&TWI_RXACK_bm);}
 static void TWI_end(){TWI0.MCTRLB=TWI_MCMD_STOP_gc;}
@@ -83,8 +86,49 @@ static void cgram(uint8_t i,const uint8_t *w){
 	TWI_end();
 }
 
-const uint8_t neko[]={200, 186, 198, 197, 218, 217, 214, TERM};
-const uint8_t nyan[]={198, 172, 176, 221, TERM};
+volatile uint8_t adc_state=0;
+volatile uint8_t vsense=0;
+volatile uint8_t vdd=0;
+static void adc_run(){
+	VREF.CTRLA=VREF_ADC0REFSEL_2V5_gc;
+	ADC0.INTCTRL = ADC_RESRDY_bm;
+	if(adc_state){// vsense
+		ADC0.MUXPOS=ADC_MUXPOS_AIN7_gc;
+		ADC0.CTRLC=ADC_REFSEL_INTREF_gc;
+	}else{// vdd
+		ADC0.MUXPOS=ADC_MUXPOS_INTREF_gc;
+		ADC0.CTRLC=ADC_REFSEL_VDDREF_gc;
+	}
+	ADC0.CTRLC|=ADC_SAMPCAP_bm|ADC_PRESC_DIV256_gc;// 50k < CLK_ADC < 1.5M
+	ADC0.CTRLB=ADC_SAMPNUM_ACC64_gc;
+	ADC0.CTRLA=ADC_ENABLE_bm;
+	ADC0.COMMAND=ADC_STCONV_bm;
+}
+ISR(ADC0_RESRDY_vect){
+	uint16_t x=ADC0.RES>>6;
+	if(adc_state){
+		vsense=x*10/78;// v = x * 2.5/1023 * 24.7/4.7; x/v==78
+	}else{
+		// 0b010100; x == 706 @12V 3.6V
+		// 0b011001; x == 816 @9V 3.1V
+		LCD_contrast(0b010100+((x-699)*3>>6));
+		vdd=25575/x;// v = 2.5/x*1023; v*x*10==25575
+	}
+	adc_state=!adc_state;
+	adc_run();
+}
+
+static uint8_t *n2str(uint16_t x,uint8_t *w,const uint8_t p3,const uint8_t p2,const uint8_t p1,const uint8_t p0){
+	uint8_t t,b=0;
+	for(t=0;x>=1000;x-=1000,t++);
+	if(t||b)w[p3]='0'+t;if(t)b=1;
+	for(t=0;x>= 100;x-= 100,t++);
+	if(t||b)w[p2]='0'+t;if(t)b=1;
+	for(t=0;x>=  10;x-=  10,t++);
+	if(t||b)w[p1]='0'+t;if(t)b=1;
+	w[p0]='0'+x;
+	return w;
+}
 
 int main() {
 	_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB,0);
@@ -95,46 +139,32 @@ int main() {
 	TCB0.CTRLA=TCB_ENABLE_bm;
 	TCB0.CCMP=F_CPU/4e4-1;// 40kHz
 
-	VREF.CTRLA=VREF_ADC0REFSEL_2V5_gc;
-	ADC0.MUXPOS=ADC_MUXPOS_AIN7_gc;
-	ADC0.CTRLC=ADC_SAMPCAP_bm|ADC_PRESC_DIV256_gc;// 50k < CLK_ADC < 1.5M
-	ADC0.CTRLB=ADC_SAMPNUM_ACC64_gc;
-	ADC0.CTRLA=ADC_FREERUN_bm|ADC_ENABLE_bm;
-	ADC0.COMMAND=ADC_STCONV_bm;
-
 	TWI0.MBAUD=TWI_BAUD(F_SCL);
 	TWI0.MCTRLA=TWI_ENABLE_bm;
 	TWI0.MSTATUS=TWI_BUSSTATE_IDLE_gc;
 	LCD_init();
+	sei();
+	adc_run();
 
 	// cursor(0,0);print(neko);
 	// cursor(0,1);print(nyan);print(nyan);
 	cgram(0,zap);cgram(1,kmph_l);cgram(2,kmph_r);
-	cursor(0,1);print((const uint8_t[]){'6','0',' ',1,2,TERM});
+	// cursor(0,1);print((const uint8_t[]){'6','0',' ',1,2,TERM});
 
-	spk(3429,50);
+	spk(3429,50);// 65536/20000*Hz
 	spk(3849,50);
 	spk(5138,50);
+	spk(6858,50);
 
 	uint8_t h=0;
 	while(1){
+		cli();
 		for(uint8_t i=0;i<8;++i)led_hsv(h+(i<<5),128,16);
+		sei();
 		_delay_us(400);
-		++h;
+		h+=4;
+		cursor(0,0);print(n2str(vsense,(uint8_t[]){"\x00  x.x V\xa0"},2,2,3,5));
+		cursor(0,1);print(n2str(vdd,(uint8_t[]){"VDD x.x V\xa0"},4,4,4,6));
 		_delay_ms(50);
-		{
-			uint16_t x=ADC0.RES>>6;
-			// 0b010100; ADC0.RES>>6 == 937 == 0x3a9 @12V
-			// 0b011000; ADC0.RES>>6 == 710 == 0x2c6 @9V
-			x*=10;
-			LCD_contrast(38-(x>>9));
-			x/=78;// v = x * 2.5/1023 * 24.7/4.7; x/v==78
-			uint8_t w[9]={0,' ',0,0,'.',0,' ','V',TERM};
-			for(uint16_t j=0,i=100,t;i;i/=10,++j){
-				t=x/i;x-=t*i;
-				w[(const uint8_t[]){2,3,5}[j]]=0b110000|t;
-			}
-			cursor(0,0);print(w);
-		}
 	}
 }
