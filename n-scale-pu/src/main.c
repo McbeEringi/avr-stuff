@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -16,7 +17,7 @@
 #define B {A;A;A;A;A;A;A;A;}
 #define TERM 0xa0
 
-#define F_SCL 400000UL
+#define F_SCL 200000UL
 #define TWI_BAUD(X) (((F_CPU/(X))-10)/2)
 #define LCD_ADDR 0x7c
 
@@ -24,7 +25,7 @@ void wait(){while(!(TCB0.INTFLAGS&TCB_CAPT_bm));TCB0.INTFLAGS=1;}
 
 static void led(uint8_t r,uint8_t g,uint8_t b){
 	for(uint8_t i=0;i<3;++i){
-		uint8_t x=((uint8_t[]){g,r,b})[i];
+		uint8_t x=i==0?g:i==1?r:b;
 		for(uint8_t m=0x80;m;m>>=1){
 			if(x&m){PORTA.OUTSET=NP;B;}
 			else{PORTA.OUTSET=NP;A;}
@@ -43,7 +44,7 @@ static void led_hsv(uint8_t h,uint8_t s,uint8_t v){
 static void spk(uint16_t d,uint16_t n){
 	n*=40;
 	for(uint16_t i=0,t=0;i<n;++i){
-		if(t<0x8000>>2)PORTA.OUTSET=SPK;
+		if(t<0x8000)PORTA.OUTSET=SPK;
 		else PORTA.OUTCLR=SPK;
 		t+=d;
 		wait();
@@ -53,32 +54,32 @@ static void spk(uint16_t d,uint16_t n){
 
 const uint8_t neko[]={200, 186, 198, 197, 218, 217, 214, TERM};
 const uint8_t nyan[]={198, 172, 176, 221, TERM};
-static void TWI_begin(){TWI0.MADDR=LCD_ADDR;while(!(TWI0.MSTATUS&TWI_WIF_bm));}
-static void TWI_write(uint8_t x){TWI0.MDATA=x;while(!(TWI0.MSTATUS&TWI_WIF_bm)||TWI0.MSTATUS&TWI_RXACK_bm);}
+static void _TWI_wait(){
+	while(!(TWI0.MSTATUS&(TWI_WIF_bm|TWI_BUSERR_bm|TWI_ARBLOST_bm)));
+	if(TWI0.MSTATUS&(TWI_BUSERR_bm|TWI_ARBLOST_bm))
+		TWI0.MSTATUS=TWI_BUSERR_bm|TWI_ARBLOST_bm;
+}
+static void TWI_begin(){TWI0.MSTATUS=TWI_BUSSTATE_IDLE_gc;TWI0.MADDR=LCD_ADDR;_TWI_wait();}
+static void TWI_write(uint8_t x){TWI0.MDATA=x;_TWI_wait();}
 static void TWI_end(){TWI0.MCTRLB=TWI_MCMD_STOP_gc;}
-static void LCD_cmd(const uint8_t x){TWI_begin();TWI_write(0);TWI_write(x);TWI_end();}
-static void LCD_cmds(const uint8_t *p){
+
+static void send(const uint8_t *cmds,const uint8_t *data){
 	TWI_begin();
-	for(;*p;++p){
-		TWI_write(*(p+1)?0x80:0);TWI_write(*p);
-		if(*p>>3==0b1101)_delay_ms(200);
-	}
+	if(cmds){for(;*cmds;++cmds){
+		TWI_write(data||*(cmds+1)?0x80:0);TWI_write(*cmds);
+		if(*cmds>>3==0b1101)_delay_ms(200);else if(*cmds==1)_delay_ms(2);
+	}}
+	if(data){TWI_write(0x40);for(;*data!=TERM;data++)TWI_write(*data);}
 	TWI_end();
 }
-static void LCD_init(){
+
+
+static void send_init(){
 	_delay_ms(50);
-	LCD_cmds((const uint8_t[]){0x39,0x14,0x6c,0x38,0x0c,0x01,0x02,0});
-	_delay_ms(2);
+	send((const uint8_t[]){0x39,0x14,0x6c,0x38,0x0c,0x01,0x02,0},NULL);
 }
-static void LCD_contrast(uint8_t c){
-	LCD_cmds((const uint8_t[]){0x39,0x70|(c&0xf),0x54|((c>>4)&3),0x38,0});
-}
-static void print(const uint8_t *p){
-	TWI_begin();
-	TWI_write(0x40);for(;*p!=TERM;p++)TWI_write(*p);
-	TWI_end();
-}
-static void cursor(uint8_t x,uint8_t y){LCD_cmd(0x80|(y==0?0:0x40)|(x&0x7));}
+static void send_contrast(uint8_t c){send((const uint8_t[]){0x39,0x70|(c&0xf),0x54|((c>>4)&3),0x38,0},NULL);}
+static uint8_t cursor(uint8_t x,uint8_t y){return 0x80|(y<<6)|(x&7);}
 static void cgram(uint8_t i,const uint8_t *w){
 	TWI_begin();
 	TWI_write(0x80);TWI_write(0x40|((i&7)<<3));
@@ -87,9 +88,10 @@ static void cgram(uint8_t i,const uint8_t *w){
 }
 static void shutdown(){
 	// for(uint8_t i=0;i<8;++i)led(0,0,0);
-	cursor(0,0);print((uint8_t[]){"see you!\xa0"});
-	cursor(0,1);print((uint8_t[]){"        \xa0"});
+	send((uint8_t[]){cursor(0,0),0},"see you!\xa0");
+	send((uint8_t[]){cursor(0,1),0},"        \xa0");
 	spk(1714,100);
+	cli();
 	exit(0);
 }
 
@@ -119,7 +121,7 @@ ISR(ADC0_RESRDY_vect){
 	else{
 		// 0b010100; x == 706 @12V 3.6V
 		// 0b011001; x == 816 @9V 3.1V
-		LCD_contrast(0b010100+((x-699)*3>>6));
+		send_contrast(0b010100+((x-699)*3>>6));
 		vdd=25575/x;// v = 2.5/x*1023; v*x*10==25575
 	}
 	if(vdd<30)shutdown();
@@ -147,21 +149,21 @@ int main() {
 	PORTA.DIRSET=NP|SPK;
 	PORTB.DIRSET=MD_A|MD_B;
 
+	PORTA.PIN1CTRL=
+	PORTA.PIN3CTRL=
+	PORTA.PIN4CTRL=
+	PORTA.PIN6CTRL=PORT_PULLUPEN_bm;
+
 	TCB0.CTRLA=TCB_ENABLE_bm;
 	TCB0.CCMP=F_CPU/4e4-1;// 40kHz
 
 	TWI0.MBAUD=TWI_BAUD(F_SCL);
 	TWI0.MCTRLA=TWI_ENABLE_bm;
-	TWI0.MSTATUS=TWI_BUSSTATE_IDLE_gc;
-	LCD_init();
+	send_init();
 	sei();
 	adc_run();
 
-	// cursor(0,0);print(neko);
-	// cursor(0,1);print(nyan);print(nyan);
-	cgram(0,zap);cgram(1,kmph_l);cgram(2,kmph_r);
-	// cursor(0,1);print((const uint8_t[]){'6','0',' ',1,2,TERM});
-	cursor(0,0);print("hello!\xa0");
+	send((uint8_t[]){cursor(0,0),0},"hello!\xa0");
 
 	spk(3429,50);// 65536/20000*Hz
 	spk(3849,50);
@@ -170,20 +172,72 @@ int main() {
 	_delay_ms(500);
 
 	uint8_t h=0;
+	uint8_t btn=PORTA.IN;
 	while(1){
 		switch(state){
-			case 0:{
+			case 0x00:{
+				send((uint8_t[]){1,0},NULL);
+				cgram(0,zap);cgram(1,mcu);
+				++state;
+			}
+			case 0x01:{
 				cli();
 				for(uint8_t i=0;i<8;++i)led_hsv(h+(i<<5),128,16);
 				sei();
 				_delay_us(400);
-				h+=4;
-				cursor(0,0);print(n2str(vsense,(uint8_t[]){"\x00  x.x V\xa0"},2,2,3,5));
-				cursor(0,1);print(n2str(vdd,(uint8_t[]){"VDD x.x V\xa0"},4,4,4,6));
+				h+=8;
+				send((uint8_t[]){cursor(0,0),0},n2str(vsense,(uint8_t[]){"\x00  x.x V\xa0"},2,2,3,5));
+				send((uint8_t[]){cursor(0,1),0},n2str(   vdd,(uint8_t[]){"\x01  x.x V\xa0"},3,3,3,5));
+				if(((btn^PORTA.IN)&PORTA.IN)&BTN_RU)state|=0xf;
 				break;
 			}
+			case 0x0f:{spk(3429,20);state=0x10;break;}
+
+			case 0x10:{
+				send((uint8_t[]){1,0},NULL);
+				cli();
+				for(uint8_t i=0;i<8;++i)led(8,4,4);
+				sei();
+				++state;
+			}
+			case 0x11:{
+				send((uint8_t[]){cursor(0,0),0},"0x11\xa0");
+				if(((btn^PORTA.IN)&PORTA.IN)&BTN_RU)state|=0xf;
+				break;
+			}
+			case 0x1f:{spk(4322,20);state=0x20;break;}
+
+			case 0x20:{
+				send((uint8_t[]){1,0},NULL);
+				cli();
+				for(uint8_t i=0;i<8;++i)led(4,8,4);
+				sei();
+				++state;
+			}
+			case 0x21:{
+				send((uint8_t[]){cursor(0,0),0},"0x21\xa0");
+				if(((btn^PORTA.IN)&PORTA.IN)&BTN_RU)state|=0xf;
+				break;
+			}
+			case 0x2f:{spk(5138,20);state=0x30;break;}
+
+			case 0x30:{
+				send((uint8_t[]){1,0},NULL);
+				cli();
+				for(uint8_t i=0;i<8;++i)led(4,4,8);
+				sei();
+				++state;
+			}
+			case 0x31:{
+				send((uint8_t[]){cursor(0,0),0},"0x31\xa0");
+				if(((btn^PORTA.IN)&PORTA.IN)&BTN_RU)state|=0xf;
+				break;
+			}
+			case 0x3f:{spk(3237,20);_delay_ms(50);spk(3237,20);state=0x00;break;}
+
 			default:shutdown();
 		}
+		btn=PORTA.IN;
 		_delay_ms(50);
 	}
 }
