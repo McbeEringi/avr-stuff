@@ -85,6 +85,15 @@ static void cgram(uint8_t i,const uint8_t *w){
 	TWI_write(0x40);for(uint8_t j=0;j<8;++j)TWI_write(w[j]);
 	TWI_end();
 }
+static void shutdown(){
+	// for(uint8_t i=0;i<8;++i)led(0,0,0);
+	cursor(0,0);print((uint8_t[]){"see you!\xa0"});
+	cursor(0,1);print((uint8_t[]){"        \xa0"});
+	spk(1714,100);
+	exit(0);
+}
+
+volatile uint8_t state=0;
 
 volatile uint8_t adc_state=0;
 volatile uint8_t vsense=0;
@@ -106,16 +115,18 @@ static void adc_run(){
 }
 ISR(ADC0_RESRDY_vect){
 	uint16_t x=ADC0.RES>>6;
-	if(adc_state){
-		vsense=x*10/78;// v = x * 2.5/1023 * 24.7/4.7; x/v==78
-	}else{
+	if(adc_state)vsense=x*10/78;// v = x * 2.5/1023 * 24.7/4.7; x/v==78
+	else{
 		// 0b010100; x == 706 @12V 3.6V
 		// 0b011001; x == 816 @9V 3.1V
 		LCD_contrast(0b010100+((x-699)*3>>6));
 		vdd=25575/x;// v = 2.5/x*1023; v*x*10==25575
 	}
-	adc_state=!adc_state;
-	adc_run();
+	if(vdd<30)shutdown();
+	else{
+		adc_state=!adc_state;
+		adc_run();
+	}
 }
 
 static uint8_t *n2str(uint16_t x,uint8_t *w,const uint8_t p3,const uint8_t p2,const uint8_t p1,const uint8_t p0){
@@ -150,21 +161,29 @@ int main() {
 	// cursor(0,1);print(nyan);print(nyan);
 	cgram(0,zap);cgram(1,kmph_l);cgram(2,kmph_r);
 	// cursor(0,1);print((const uint8_t[]){'6','0',' ',1,2,TERM});
+	cursor(0,0);print("hello!\xa0");
 
 	spk(3429,50);// 65536/20000*Hz
 	spk(3849,50);
 	spk(5138,50);
 	spk(6858,50);
+	_delay_ms(500);
 
 	uint8_t h=0;
 	while(1){
-		cli();
-		for(uint8_t i=0;i<8;++i)led_hsv(h+(i<<5),128,16);
-		sei();
-		_delay_us(400);
-		h+=4;
-		cursor(0,0);print(n2str(vsense,(uint8_t[]){"\x00  x.x V\xa0"},2,2,3,5));
-		cursor(0,1);print(n2str(vdd,(uint8_t[]){"VDD x.x V\xa0"},4,4,4,6));
+		switch(state){
+			case 0:{
+				cli();
+				for(uint8_t i=0;i<8;++i)led_hsv(h+(i<<5),128,16);
+				sei();
+				_delay_us(400);
+				h+=4;
+				cursor(0,0);print(n2str(vsense,(uint8_t[]){"\x00  x.x V\xa0"},2,2,3,5));
+				cursor(0,1);print(n2str(vdd,(uint8_t[]){"VDD x.x V\xa0"},4,4,4,6));
+				break;
+			}
+			default:shutdown();
+		}
 		_delay_ms(50);
 	}
 }
