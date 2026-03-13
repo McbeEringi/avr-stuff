@@ -99,6 +99,7 @@ static void shutdown(){
 volatile uint8_t adc_state=0;
 volatile uint8_t vsense=0;
 volatile uint8_t vdd=0;
+volatile uint8_t tcc=0;
 static void adc_run(){
 	VREF.CTRLA=VREF_ADC0REFSEL_2V5_gc;
 	ADC0.INTCTRL = ADC_RESRDY_bm;
@@ -120,7 +121,7 @@ ISR(ADC0_RESRDY_vect){
 	else{
 		// 0b010100; x == 706 @12V 3.6V
 		// 0b011001; x == 816 @9V 3.1V
-		send_contrast(0b010100+((x-699)*3>>6));
+		if(!tcc++){send_contrast(0b010100+((x-699)*3>>6));spk(3429,10);}
 		vdd=25575/x;// v = 2.5/x*1023; v*x*10==25575
 	}
 	if(vdd<30)shutdown();
@@ -176,11 +177,12 @@ int main() {
 
 	uint8_t t=0;
 	uint8_t state=0;
+	uint8_t pow=0;
 	while(1){
 		switch(state){
 			case 0x00:{
 				send((uint8_t[]){1,0},NULL);
-				cgram(0,zap);cgram(1,mcu);
+				cgram(0,zap);_delay_ms(1);cgram(1,mcu);
 				++state;
 			}
 			case 0x01:{
@@ -203,7 +205,10 @@ int main() {
 				++state;
 			}
 			case 0x11:{
-				send((uint8_t[]){cursor(0,0),0},"0x11\xa0");
+				send((uint8_t[]){cursor(0,0),0},"PWM     \xa0");
+				send((uint8_t[]){cursor(0,1),0},n2str(pow,(uint8_t[]){"  x/255 \xa0"},0,0,1,2));
+				if(btn_down(BTN_LU))++pow;
+				if(btn_down(BTN_LD))--pow;
 				if(btn_down(BTN_RU))state|=0xf;
 				break;
 			}
