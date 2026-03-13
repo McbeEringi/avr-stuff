@@ -240,7 +240,35 @@ int main() {
 				if(btn_down(BTN_RU))state|=0xf;
 				break;
 			}
-			case 0x3f:{spk(3237,20);_delay_ms(50);spk(3237,20);state=0x00;break;}
+			case 0x3f:{spk(5767,20);state=0x40;break;}
+
+			case 0x40:{
+				send((uint8_t[]){1,0},NULL);
+				cli();
+				for(uint8_t i=0;i<8;++i)led(0,8,8);
+				sei();
+				++state;
+			}
+			case 0x41:{
+				send((uint8_t[]){cursor(0,0),0},"0x41\xa0");
+				if(btn_down(BTN_RU))state|=0xf;
+				break;
+			}
+			case 0x4f:{spk(6473,20);state=0x50;break;}
+
+			case 0x50:{
+				send((uint8_t[]){1,0},NULL);
+				cli();
+				for(uint8_t i=0;i<8;++i)led(8,0,8);
+				sei();
+				++state;
+			}
+			case 0x51:{
+				send((uint8_t[]){cursor(0,0),0},"0x51\xa0");
+				if(btn_down(BTN_RU))state|=0xf;
+				break;
+			}
+			case 0x5f:{spk(3237,20);_delay_ms(50);spk(3237,20);state=0x00;break;}
 
 			default:shutdown();
 		}
