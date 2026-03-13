@@ -95,7 +95,6 @@ static void shutdown(){
 	exit(0);
 }
 
-volatile uint8_t state=0;
 
 volatile uint8_t adc_state=0;
 volatile uint8_t vsense=0;
@@ -143,11 +142,15 @@ static uint8_t *n2str(uint16_t x,uint8_t *w,const uint8_t p3,const uint8_t p2,co
 	return w;
 }
 
+uint8_t btn;
+static uint8_t btn_down(uint8_t x){return(btn^PORTA.IN)&PORTA.IN&x;}
+
 int main() {
 	_PROTECTED_WRITE(CLKCTRL_MCLKCTRLB,0);
 	PORTMUX.CTRLC=PORTMUX_TCA00_ALTERNATE_gc;
 	PORTA.DIRSET=NP|SPK;
 	PORTB.DIRSET=MD_A|MD_B;
+	btn=PORTA.IN;
 
 	PORTA.PIN1CTRL=
 	PORTA.PIN3CTRL=
@@ -171,8 +174,8 @@ int main() {
 	spk(6858,50);
 	_delay_ms(500);
 
-	uint8_t h=0;
-	uint8_t btn=PORTA.IN;
+	uint8_t t=0;
+	uint8_t state=0;
 	while(1){
 		switch(state){
 			case 0x00:{
@@ -182,13 +185,12 @@ int main() {
 			}
 			case 0x01:{
 				cli();
-				for(uint8_t i=0;i<8;++i)led_hsv(h+(i<<5),128,16);
+				for(uint8_t i=0;i<8;++i)led_hsv(t+(i<<5),128,16);
 				sei();
 				_delay_us(400);
-				h+=8;
 				send((uint8_t[]){cursor(0,0),0},n2str(vsense,(uint8_t[]){"\x00  x.x V\xa0"},2,2,3,5));
 				send((uint8_t[]){cursor(0,1),0},n2str(   vdd,(uint8_t[]){"\x01  x.x V\xa0"},3,3,3,5));
-				if(((btn^PORTA.IN)&PORTA.IN)&BTN_RU)state|=0xf;
+				if(btn_down(BTN_RU))state|=0xf;
 				break;
 			}
 			case 0x0f:{spk(3429,20);state=0x10;break;}
@@ -202,7 +204,7 @@ int main() {
 			}
 			case 0x11:{
 				send((uint8_t[]){cursor(0,0),0},"0x11\xa0");
-				if(((btn^PORTA.IN)&PORTA.IN)&BTN_RU)state|=0xf;
+				if(btn_down(BTN_RU))state|=0xf;
 				break;
 			}
 			case 0x1f:{spk(4322,20);state=0x20;break;}
@@ -216,7 +218,7 @@ int main() {
 			}
 			case 0x21:{
 				send((uint8_t[]){cursor(0,0),0},"0x21\xa0");
-				if(((btn^PORTA.IN)&PORTA.IN)&BTN_RU)state|=0xf;
+				if(btn_down(BTN_RU))state|=0xf;
 				break;
 			}
 			case 0x2f:{spk(5138,20);state=0x30;break;}
@@ -230,7 +232,7 @@ int main() {
 			}
 			case 0x31:{
 				send((uint8_t[]){cursor(0,0),0},"0x31\xa0");
-				if(((btn^PORTA.IN)&PORTA.IN)&BTN_RU)state|=0xf;
+				if(btn_down(BTN_RU))state|=0xf;
 				break;
 			}
 			case 0x3f:{spk(3237,20);_delay_ms(50);spk(3237,20);state=0x00;break;}
@@ -238,6 +240,7 @@ int main() {
 			default:shutdown();
 		}
 		btn=PORTA.IN;
+		++t;
 		_delay_ms(50);
 	}
 }
