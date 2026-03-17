@@ -121,7 +121,7 @@ ISR(ADC0_RESRDY_vect){
 	else{
 		// 0b010100; x == 706 @12V 3.6V
 		// 0b011001; x == 816 @9V 3.1V
-		if(!tcc++){send_contrast(0b010100+((x-699)*3>>6));spk(3429,10);}
+		if(!tcc++){_delay_ms(1);send_contrast(0b010100+((x-699)*3>>6));_delay_ms(1);}
 		vdd=25575/x;// v = 2.5/x*1023; v*x*10==25575
 	}
 	if(vdd<30)shutdown();
