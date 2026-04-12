@@ -17,6 +17,9 @@
 #define B {A;A;A;A;A;A;A;A;}
 #define TERM 0xa0
 
+
+#define BLNP
+
 #define F_SCL 200000UL
 #define TWI_BAUD(X) (((F_CPU/(X))-10)/2)
 #define LCD_ADDR 0x7c
@@ -50,6 +53,11 @@ static void spk(uint16_t d,uint16_t n){
 		wait();
 	}
 	PORTA.OUTCLR=SPK;
+}
+static void blnp(){
+#ifdef BLNP
+				led(64,64,64);
+#endif
 }
 
 const uint8_t neko[]={200, 186, 198, 197, 218, 217, 214, TERM};
@@ -187,7 +195,7 @@ int main() {
 			}
 			case 0x01:{
 				cli();
-				for(uint8_t i=0;i<8;++i)led_hsv(t+(i<<5),128,16);
+				blnp();for(uint8_t i=0;i<8;++i)led_hsv(t+(i<<5),128,16);
 				sei();
 				_delay_us(400);
 				send((uint8_t[]){cursor(0,0),0},n2str(vsense,(uint8_t[]){"\x00  x.x V\xa0"},2,2,3,5));
@@ -200,7 +208,7 @@ int main() {
 			case 0x10:{
 				send((uint8_t[]){1,0},NULL);
 				cli();
-				for(uint8_t i=0;i<8;++i)led(8,4,4);
+				blnp();for(uint8_t i=0;i<8;++i)led(8,4,4);
 				sei();
 				++state;
 			}
@@ -217,7 +225,7 @@ int main() {
 			case 0x20:{
 				send((uint8_t[]){1,0},NULL);
 				cli();
-				for(uint8_t i=0;i<8;++i)led(4,8,4);
+				blnp();for(uint8_t i=0;i<8;++i)led(4,8,4);
 				sei();
 				++state;
 			}
@@ -231,7 +239,7 @@ int main() {
 			case 0x30:{
 				send((uint8_t[]){1,0},NULL);
 				cli();
-				for(uint8_t i=0;i<8;++i)led(4,4,8);
+				blnp();for(uint8_t i=0;i<8;++i)led(4,4,8);
 				sei();
 				++state;
 			}
@@ -245,7 +253,7 @@ int main() {
 			case 0x40:{
 				send((uint8_t[]){1,0},NULL);
 				cli();
-				for(uint8_t i=0;i<8;++i)led(0,8,8);
+				blnp();for(uint8_t i=0;i<8;++i)led(0,8,8);
 				sei();
 				++state;
 			}
@@ -259,7 +267,7 @@ int main() {
 			case 0x50:{
 				send((uint8_t[]){1,0},NULL);
 				cli();
-				for(uint8_t i=0;i<8;++i)led(8,0,8);
+				blnp();for(uint8_t i=0;i<8;++i)led(8,0,8);
 				sei();
 				++state;
 			}
