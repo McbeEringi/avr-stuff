@@ -69,6 +69,9 @@ const uint8_t code_g[]={0xca,0x5a,0x38,0xc7};// PWR
 const uint8_t code_h[]={0xca,0x5a,0x35,0xca};// CHUP
 const uint8_t code_i[]={0xca,0x5a,0x33,0xcc};// CHDN
 
+// SONY SONY RMT-DSLR2 (NEX-5 Remote)
+const uint8_t sony_cam_shutter[]={0x2d,0x1d,0xf};// 20bit
+
 #define IR_WO 0
 
 ////////////////////////////////////////////////////////////
@@ -186,5 +189,6 @@ void main(){
 		else if(x&(1<<1))send_nec(nec_re_off);//send_aeha(pana_hk_off,40);
 		else if(x&(1<<2))send_nec(nec_re_lumi);//send_aeha(pana_hk_off,40);
 		// {send_nec(code_g);FOR(150)wait();FOR(4)FORBUF(send_sony(code_e,12))wait();}//send_aeha(code_f,64);
+		// if(x&(1<<6))FOR(3)FORBUF(send_sony(sony_cam_shutter,20))wait();
 	}
 }
