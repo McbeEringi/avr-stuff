@@ -1,0 +1,36 @@
+<script type="build">
+import{dirname,basename}from'node:path';
+import cfg from'config_default';
+import tmpl from'html_tmpl';
+
+const
+{host,auth,repo}=(x=>(
+	x.match(/https?:\/\/(?<host>.+?)\/(?<auth>.+?)\/(?<repo>.+?)\.git/)??
+	x.match(/(?<user>.+?)@(?<host>.+?):(?<auth>.+?)\/(?<repo>.+)/)
+).groups)(await Bun.$`git remote get-url origin`.text()),
+branch='HEAD';
+
+export default async x=>(
+	x=tmpl(cfg)(x),
+	x.html=await new HTMLRewriter()
+		.on('#browse',{element:async(e,md)=>e.append(
+			[...new Bun.Glob('proj/**/platformio.ini').scanSync('../')].map(x=>(
+				`<a href="https://${host}/${auth}/${repo}/tree/${branch}/${dirname(x)}"><p>${basename(dirname(x))}</p></a>`
+			)).join('\n'),
+			{html:1}
+		)})
+		.transform(new Response(x.html)),
+	x
+);
+</script>
+
+<main>
+<h1>McbeEringi/avr-stuff</h1>
+<hr>
+<div class="zab">
+	<h2>Projects</h2>
+	<div class="stuff" id="browse">
+		<a href="./avr-musicbox/"><p>avr-musicbox</p></a>
+	</div>
+</div>
+</main>
