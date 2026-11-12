@@ -8,7 +8,7 @@ const
 	x.match(/https?:\/\/(?<host>.+?)\/(?<auth>.+?)\/(?<repo>.+?)\.git/)??
 	x.match(/(?<user>.+?)@(?<host>.+?):(?<auth>.+?)\/(?<repo>.+)/)
 ).groups)(await Bun.$`git remote get-url origin`.text()),
-branch='HEAD';
+branch=(await Bun.$`git branch --show-current`.text()).trim();
 
 export default async x=>(
 	x=tmpl(cfg)(x),
